@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Layout Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            background: #f8f9fa;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #1e293b;
+            margin-top: 0;
+        }
+
+        .btn-row {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .primary {
+            background: #1e293b;
+            color: white;
+        }
+
+        .primary:hover {
+            background: #334155;
+        }
+
+        .secondary {
+            background: white;
+            color: #1e293b;
+            border: 2px solid #1e293b;
+        }
+
+        .secondary:hover {
+            background: #f8f9fa;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #d1fae5;
+            border-radius: 4px;
+            color: #065f46;
+        }
+    </style>
+</head>
+<body>
+    <h1>Button Layout Test - Minimal Gradio UI</h1>
+
+    <div class="test-section">
+        <h2>Test 1: Basic Horizontal Button Layout</h2>
+        <p>Two buttons should appear side-by-side:</p>
+        <div class="btn-row">
+            <button class="primary">Send</button>
+            <button class="secondary">Clear</button>
+        </div>
+        <div class="status">✓ If you see two buttons in a row, the layout is correct!</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Gradio gr.Row() Element</h2>
+        <p>This tests the same CSS that should work in Gradio:</p>
+        <div id="btn-row" style="display: flex; flex-direction: row; gap: 10px;">
+            <button class="primary">Send</button>
+            <button class="secondary">Clear</button>
+        </div>
+        <div class="status">✓ This uses the same CSS as the Gradio app</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Full Layout Simulation</h2>
+        <div style="display: flex; gap: 20px;">
+            <div style="flex: 7; background: white; padding: 20px; border-radius: 8px;">
+                <h3>Chat Area (70%)</h3>
+                <div style="border: 2px solid #e1e8ed; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+                    <p style="margin: 0;">Input textbox here...</p>
+                </div>
+                <div class="btn-row">
+                    <button class="primary">Send</button>
+                    <button class="secondary">Clear</button>
+                </div>
+            </div>
+            <div style="flex: 3; background: white; padding: 20px; border-radius: 8px; border-left: 1px solid #e1e8ed;">
+                <h3>Sidebar (30%)</h3>
+                <p>Visualization area</p>
+                <button style="width: 100%; margin-top: 10px;">Quick Query 1</button>
+                <button style="width: 100%; margin-top: 10px;">Quick Query 2</button>
+            </div>
+        </div>
+        <div class="status">✓ Full layout with 70/30 split</div>
+    </div>
+
+    <script>
+        // Add click handlers for demo
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                alert(`${this.textContent} button clicked!`);
+            });
+        });
+    </script>
+</body>
+</html>
