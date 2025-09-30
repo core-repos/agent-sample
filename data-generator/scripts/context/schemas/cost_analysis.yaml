@@ -1,0 +1,326 @@
+# Cost Analysis Table Schema
+# BigQuery table schema definition for cost analytics data
+# Project: BigQuery Analytics AI Agent Platform
+# Dataset: agent_bq_dataset
+# Table: cost_analysis
+
+metadata:
+  table_name: cost_analysis
+  dataset: agent_bq_dataset
+  project_id: "{{ GCP_PROJECT_ID }}"
+  description: "Daily cost records across cloud providers with application and team attribution"
+  record_count: 10800
+  created_date: "2024-08-21"
+  last_updated: "{{ CURRENT_DATE }}"
+  data_retention_days: 365
+  partition_field: "date"
+  clustering_fields: ["cloud", "application", "environment", "tr_product_pillar_team", "apm_id"]
+
+# Application Hierarchy: cto -> tr_product_pillar_team -> tr_subpillar_name -> tr_product_id -> apm_id -> application
+
+organizational_hierarchy:
+  description: "6-level organizational hierarchy for cost attribution and analysis"
+  levels:
+    1:
+      field: "cto"
+      description: "Chief Technology Officer organization (top level)"
+      example: "Health/ENTERPRISE FINANCE TECH"
+    2:
+      field: "tr_product_pillar_team"
+      description: "Product pillar team within CTO organization"
+      example: "ENTERPRISE FINANCE TECH"
+    3:
+      field: "tr_subpillar_name"
+      description: "Sub-pillar team within product pillar"
+      example: "Core Infrastructure"
+    4:
+      field: "tr_product_id"
+      description: "Unique product identifier"
+      example: "736"
+    5:
+      field: "apm_id"
+      description: "Application Performance Management identifier"
+      example: "delivery-service-main"
+    6:
+      field: "application"
+      description: "Specific application or service (most granular level)"
+      example: "delivery-service"
+
+  additional_fields:
+    - field: "tr_product"
+      description: "Product name corresponding to tr_product_id"
+      example: "delivery as service"
+    - field: "service_name"
+      description: "Specific service or component within application"
+      example: "delivery-gateway"
+
+  usage_notes:
+    - "Use this hierarchy for drilling down from organization level to specific applications"
+    - "apm_id serves as the bridge between products and applications"
+    - "Joins with budget table should use tr_product_pillar_team as the primary key"
+    - "For cost attribution, follow the hierarchy to roll up costs to appropriate levels"
+
+schema:
+  fields:
+    - name: date
+      type: DATE
+      mode: REQUIRED
+      description: "Cost record date (YYYY-MM-DD format)"
+      constraints:
+        - "DATE >= '2020-01-01'"
+        - "DATE <= CURRENT_DATE()"
+      examples:
+        - "2024-01-15"
+        - "2024-03-20"
+        - "2024-07-01"
+
+    - name: cto
+      type: STRING
+      mode: NULLABLE
+      description: "Chief Technology Officer organization (top level of hierarchy)"
+      hierarchy_level: 1
+      constraints:
+        - "LENGTH(cto) <= 100"
+      examples:
+        - "Engineering"
+        - "Data & Analytics"
+        - "Platform & Infrastructure"
+        - "Health/ENTERPRISE FINANCE TECH"
+
+    - name: cloud
+      type: STRING
+      mode: REQUIRED
+      description: "Cloud provider identifier"
+      constraints:
+        - "cloud IN ('AWS', 'Azure', 'GCP')"
+      examples:
+        - "AWS"
+        - "Azure"
+        - "GCP"
+
+    - name: tr_product_pillar_team
+      type: STRING
+      mode: NULLABLE
+      description: "Product pillar team name (second level in organizational hierarchy)"
+      hierarchy_level: 2
+      parent_field: "cto"
+      constraints:
+        - "LENGTH(tr_product_pillar_team) <= 100"
+      examples:
+        - "Platform Engineering"
+        - "Data Analytics"
+        - "Customer Success"
+        - "Product Development"
+        - "ENTERPRISE FINANCE TECH"
+
+    - name: tr_subpillar_name
+      type: STRING
+      mode: NULLABLE
+      description: "Sub-pillar team name (third level in organizational hierarchy)"
+      hierarchy_level: 3
+      parent_field: "tr_product_pillar_team"
+      constraints:
+        - "LENGTH(tr_subpillar_name) <= 100"
+      examples:
+        - "Core Infrastructure"
+        - "Data Engineering"
+        - "Customer Platform"
+        - "Analytics Services"
+
+    - name: tr_product_id
+      type: STRING
+      mode: NULLABLE
+      description: "Unique product identifier (fourth level in organizational hierarchy)"
+      hierarchy_level: 4
+      parent_field: "tr_subpillar_name"
+      constraints:
+        - "LENGTH(tr_product_id) <= 50"
+      examples:
+        - "736"
+        - "1001"
+        - "2500"
+        - "3200"
+
+    - name: tr_product
+      type: STRING
+      mode: NULLABLE
+      description: "Product name or description corresponding to tr_product_id"
+      hierarchy_level: 4
+      parent_field: "tr_subpillar_name"
+      constraints:
+        - "LENGTH(tr_product) <= 200"
+      examples:
+        - "delivery as service"
+        - "analytics platform"
+        - "user management system"
+        - "payment processing"
+
+    - name: apm_id
+      type: STRING
+      mode: NULLABLE
+      description: "Application Performance Management identifier (fifth level in organizational hierarchy, links products to applications)"
+      hierarchy_level: 5
+      parent_field: "tr_product_id"
+      constraints:
+        - "LENGTH(apm_id) <= 100"
+      examples:
+        - "apm-001-finance"
+        - "apm-002-analytics"
+        - "apm-003-platform"
+        - "delivery-service-main"
+
+    - name: application
+      type: STRING
+      mode: REQUIRED
+      description: "Application or service name (sixth level in organizational hierarchy, most granular level)"
+      hierarchy_level: 6
+      parent_field: "apm_id"
+      constraints:
+        - "LENGTH(application) <= 100"
+        - "application != ''"
+      examples:
+        - "user-management-api"
+        - "analytics-dashboard"
+        - "payment-processor"
+        - "data-pipeline"
+        - "delivery-service"
+
+    - name: service_name
+      type: STRING
+      mode: NULLABLE
+      description: "Specific service or component name within the application"
+      constraints:
+        - "LENGTH(service_name) <= 150"
+      examples:
+        - "user-auth-service"
+        - "payment-gateway"
+        - "data-ingestion"
+        - "report-generator"
+
+    - name: managed_service
+      type: STRING
+      mode: NULLABLE
+      description: "Managed cloud service name"
+      constraints:
+        - "LENGTH(managed_service) <= 150"
+      examples:
+        - "Amazon RDS"
+        - "Azure SQL Database"
+        - "Google Cloud SQL"
+        - "AWS Lambda"
+        - "Azure Functions"
+
+    - name: environment
+      type: STRING
+      mode: REQUIRED
+      description: "Deployment environment"
+      constraints:
+        - "environment IN ('PROD', 'NON-PROD')"
+      examples:
+        - "PROD"
+        - "NON-PROD"
+
+    - name: cost
+      type: FLOAT
+      mode: REQUIRED
+      description: "Daily cost in USD"
+      constraints:
+        - "cost >= 0"
+        - "cost <= 1000000"  # Reasonable upper limit
+      examples:
+        - 125.50
+        - 1250.75
+        - 50.25
+        - 0.99
+
+indexes:
+  primary:
+    - date
+    - cloud
+    - application
+    - environment
+    - apm_id
+
+  secondary:
+    - name: idx_cost_analysis_date_cost
+      fields: [date, cost]
+      type: "BTREE"
+
+    - name: idx_cost_analysis_app_env
+      fields: [application, environment]
+      type: "BTREE"
+
+    - name: idx_cost_analysis_team
+      fields: [tr_product_pillar_team]
+      type: "BTREE"
+
+    - name: idx_cost_analysis_hierarchy
+      fields: [cto, tr_product_pillar_team, tr_subpillar_name]
+      type: "BTREE"
+
+    - name: idx_cost_analysis_product
+      fields: [tr_product_id, apm_id]
+      type: "BTREE"
+
+    - name: idx_cost_analysis_service
+      fields: [service_name, managed_service]
+      type: "BTREE"
+
+statistics:
+  total_records: 10800
+  date_range:
+    min: "2023-01-01"
+    max: "2024-08-21"
+  cost_distribution:
+    min: 0.01
+    max: 15000.00
+    avg: 234.56
+    median: 125.75
+  environment_breakdown:
+    PROD: 6500
+    NON-PROD: 4277
+  cloud_breakdown:
+    AWS: 4500
+    GCP: 3200
+    Azure: 3077
+
+query_patterns:
+  common_filters:
+    - "WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)"
+    - "WHERE environment = 'PROD'"
+    - "WHERE cloud IN ('AWS', 'GCP')"
+    - "WHERE cost > 100"
+
+  common_aggregations:
+    - "SUM(cost) as total_cost"
+    - "AVG(cost) as avg_daily_cost"
+    - "COUNT(DISTINCT application) as app_count"
+    - "MAX(cost) as max_cost"
+
+  common_groupings:
+    - "GROUP BY cloud, environment"
+    - "GROUP BY application, date"
+    - "GROUP BY tr_product_pillar_team"
+    - "GROUP BY cto, tr_product_pillar_team"
+    - "GROUP BY tr_product_id, apm_id"
+    - "GROUP BY apm_id, application"
+    - "GROUP BY service_name, managed_service"
+    - "GROUP BY DATE_TRUNC(date, MONTH)"
+
+validation_rules:
+  data_quality:
+    - rule: "no_null_required_fields"
+      sql: "SELECT COUNT(*) FROM `{project_id}.{dataset}.{table}` WHERE date IS NULL OR cloud IS NULL OR application IS NULL OR environment IS NULL OR cost IS NULL"
+      expected: 0
+
+    - rule: "valid_date_range"
+      sql: "SELECT COUNT(*) FROM `{project_id}.{dataset}.{table}` WHERE date < '2020-01-01' OR date > CURRENT_DATE()"
+      expected: 0
+
+    - rule: "positive_costs"
+      sql: "SELECT COUNT(*) FROM `{project_id}.{dataset}.{table}` WHERE cost < 0"
+      expected: 0
+
+    - rule: "valid_environments"
+      sql: "SELECT COUNT(*) FROM `{project_id}.{dataset}.{table}` WHERE environment NOT IN ('PROD', 'NON-PROD')"
+      expected: 0

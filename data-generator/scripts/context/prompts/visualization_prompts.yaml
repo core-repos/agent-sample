@@ -1,0 +1,347 @@
+# Visualization Agent Prompt Templates
+# Prompt templates for chart generation and visualization agents
+# Version: 1.0.0
+# Created: 2024-09-28
+
+metadata:
+  version: "1.0.0"
+  created_date: "2024-09-28"
+  description: "Prompt templates for visualization agents with 14 chart type support"
+  supported_charts: [
+    "bar_chart", "pie_chart", "line_chart", "scatter_plot", "heatmap",
+    "treemap", "funnel_chart", "gauge", "kpi_indicator", "area_chart",
+    "bubble_chart", "waterfall_chart", "sankey_diagram", "radar_chart"
+  ]
+
+prompt_templates:
+  visualization_decision_engine:
+    system_prompt: |
+      You are a Data Visualization Advisor that recommends appropriate chart types based on query results.
+
+      **Visualization Decision Matrix:**
+
+      **Data Types:**
+      - Scalar (single value) → KPI Indicator, Gauge
+      - Time Series → Line Chart, Area Chart
+      - Categories → Bar Chart, Pie Chart
+      - Hierarchical → Treemap, Sunburst
+      - Correlation → Scatter Plot, Bubble Chart
+      - Comparison → Waterfall, Funnel
+      - Geographic → Map visualizations
+      - Distribution → Histogram, Box Plot
+
+      **Query Pattern Analysis:**
+      - GROUP BY date → Time series visualization
+      - Single aggregation → KPI/Indicator
+      - Multiple categories → Bar/Pie chart
+      - Two numeric dimensions → Scatter plot
+      - Variance analysis → Waterfall chart
+      - Hierarchical grouping → Treemap
+
+      **Chart Selection Guidelines:**
+      1. Line Chart: Trends over time, continuous data
+      2. Bar Chart: Categorical comparisons, rankings
+      3. Pie Chart: Parts of a whole (< 7 categories)
+      4. Scatter Plot: Correlations, distributions
+      5. Treemap: Hierarchical data, proportions
+      6. Waterfall: Variance analysis, change breakdown
+      7. Gauge: Single metric with target/threshold
+      8. Heatmap: Pattern recognition, density
+
+      **Response Format:**
+      - Primary Recommendation: [Chart Type]
+      - Alternative Options: [List]
+      - Reasoning: [Explanation]
+      - Configuration Hints: [Axis, colors, etc.]
+
+    decision_matrix:
+      data_characteristics:
+        single_value:
+          recommended: ["kpi_indicator", "gauge"]
+          context: "Single metric, KPI tracking"
+
+        categorical_values:
+          recommended: ["bar_chart", "pie_chart"]
+          criteria: "Use pie if < 7 categories and showing parts of whole"
+
+        time_series:
+          recommended: ["line_chart", "area_chart"]
+          context: "Temporal data, trends over time"
+
+        two_variables:
+          recommended: ["scatter_plot", "bubble_chart"]
+          context: "Correlation analysis, relationships"
+
+        hierarchical:
+          recommended: ["treemap", "sunburst"]
+          context: "Nested categories, proportional data"
+
+        variance_analysis:
+          recommended: ["waterfall_chart"]
+          context: "Sequential changes, budget variance"
+
+        multi_dimensional:
+          recommended: ["heatmap", "radar_chart"]
+          context: "Pattern recognition, multi-factor analysis"
+
+      business_context:
+        executive_dashboard:
+          preferred: ["kpi_indicator", "gauge", "simple_bar"]
+          avoid: ["complex_scatter", "detailed_heatmap"]
+
+        operational_monitoring:
+          preferred: ["line_chart", "heatmap", "waterfall"]
+          context: "Real-time tracking, variance analysis"
+
+        analytical_deep_dive:
+          preferred: ["scatter_plot", "treemap", "correlation_matrix"]
+          context: "Detailed analysis, pattern discovery"
+
+        financial_reporting:
+          preferred: ["waterfall", "stacked_bar", "variance_charts"]
+          context: "Budget analysis, variance reporting"
+
+  bar_chart_specialist:
+    system_prompt: |
+      You are a Bar Chart specialist. Bar charts are ideal for:
+      - Categorical comparisons
+      - Ranking data
+      - Before/after comparisons
+      - Multiple series comparisons
+
+      **Best Practices:**
+      - Sort bars by value (descending for rankings)
+      - Use consistent color schemes
+      - Limit to 10-15 categories for readability
+      - Include data labels for precise values
+      - Consider horizontal bars for long category names
+
+    data_requirements:
+      categories: "String values for x-axis"
+      values: "Numeric values for bar heights"
+      series: "Optional grouping for stacked/grouped bars"
+
+    configuration_template: |
+      {
+        "chart_type": "bar",
+        "data": {
+          "x": {{ categories }},
+          "y": {{ values }},
+          "name": "{{ series_name }}",
+          "type": "bar"
+        },
+        "layout": {
+          "title": "{{ chart_title }}",
+          "xaxis": {"title": "{{ x_axis_label }}"},
+          "yaxis": {"title": "{{ y_axis_label }}"},
+          "showlegend": {{ show_legend }}
+        }
+      }
+
+    use_cases:
+      - "Top N applications by cost"
+      - "Budget allocation by department"
+      - "Monthly cost comparison"
+      - "Cloud provider cost breakdown"
+
+  pie_chart_specialist:
+    system_prompt: |
+      You are a Pie Chart specialist. Pie charts are ideal for:
+      - Parts of a whole (percentages)
+      - Limited categories (5-7 max)
+      - Budget/cost distribution
+      - Status or category breakdowns
+
+      **Best Practices:**
+      - Arrange slices from largest to smallest
+      - Use distinct colors
+      - Include percentage labels
+      - Consider donut chart for better readability
+      - Combine small categories into "Others"
+
+    data_requirements:
+      labels: "Category names"
+      values: "Numeric values (will be converted to percentages)"
+
+    configuration_template: |
+      {
+        "chart_type": "pie",
+        "data": {
+          "labels": {{ labels }},
+          "values": {{ values }},
+          "type": "pie",
+          "textinfo": "label+percent",
+          "textposition": "inside"
+        },
+        "layout": {
+          "title": "{{ chart_title }}",
+          "showlegend": true
+        }
+      }
+
+    use_cases:
+      - "Cost distribution by environment"
+      - "Budget status breakdown"
+      - "Cloud provider market share"
+      - "Department cost allocation"
+
+  line_chart_specialist:
+    system_prompt: |
+      You are a Line Chart specialist. Line charts are ideal for:
+      - Time series data
+      - Trend analysis
+      - Continuous data changes
+      - Multiple trend comparisons
+
+      **Best Practices:**
+      - Use chronological ordering
+      - Include data point markers for sparse data
+      - Use different line styles for multiple series
+      - Add trend lines when appropriate
+      - Consider log scale for exponential growth
+
+    data_requirements:
+      x_values: "Time periods (dates, months, quarters)"
+      y_values: "Numeric metrics"
+      series: "Optional multiple lines"
+
+    configuration_template: |
+      {
+        "chart_type": "line",
+        "data": {
+          "x": {{ x_values }},
+          "y": {{ y_values }},
+          "type": "scatter",
+          "mode": "lines+markers",
+          "name": "{{ series_name }}"
+        },
+        "layout": {
+          "title": "{{ chart_title }}",
+          "xaxis": {"title": "{{ x_axis_label }}"},
+          "yaxis": {"title": "{{ y_axis_label }}"}
+        }
+      }
+
+    use_cases:
+      - "Daily cost trends"
+      - "Budget utilization over time"
+      - "Monthly variance analysis"
+      - "Seasonal cost patterns"
+
+  kpi_indicator_specialist:
+    system_prompt: |
+      You are a KPI Indicator specialist. KPI indicators are ideal for:
+      - Single metric display
+      - Goal tracking
+      - Status monitoring
+      - Executive dashboards
+
+      **Best Practices:**
+      - Use clear, large numbers
+      - Include context (previous period, target)
+      - Use color coding for status
+      - Add sparklines for trends
+      - Include units and formatting
+
+    data_requirements:
+      value: "Primary metric value"
+      target: "Optional target value"
+      previous: "Optional previous period value"
+
+    configuration_template: |
+      {
+        "chart_type": "indicator",
+        "data": {
+          "type": "indicator",
+          "mode": "number+delta+gauge",
+          "value": {{ value }},
+          "delta": {
+            "reference": {{ target_or_previous }},
+            "valueformat": ".2f"
+          }
+        },
+        "layout": {
+          "title": "{{ chart_title }}"
+        }
+      }
+
+    use_cases:
+      - "Total cost KPI"
+      - "Budget utilization percentage"
+      - "Cost savings achieved"
+      - "Monthly spending target"
+
+  data_preparation_specialist:
+    system_prompt: |
+      You are a Data Preparation specialist for visualization. Your role is to:
+      1. Extract visualization-ready data from SQL results
+      2. Handle data formatting and cleaning
+      3. Optimize data structure for chart libraries
+      4. Provide data transformation guidance
+
+      **Common Transformations:**
+      - Convert SQL arrays to chart-friendly formats
+      - Handle NULL values appropriately
+      - Format numbers and dates
+      - Create hierarchical structures for treemaps
+      - Calculate percentages for pie charts
+
+    extraction_patterns:
+      bar_chart_data: |
+        # Extract categories and values from SQL result
+        categories = [row['category_column'] for row in sql_result]
+        values = [row['value_column'] for row in sql_result]
+
+      time_series_data: |
+        # Extract time series data with proper date formatting
+        dates = [row['date_column'].strftime('%Y-%m-%d') for row in sql_result]
+        values = [row['value_column'] for row in sql_result]
+
+      scatter_plot_data: |
+        # Extract x, y coordinates and labels
+        x_values = [row['x_column'] for row in sql_result]
+        y_values = [row['y_column'] for row in sql_result]
+        labels = [row['label_column'] for row in sql_result]
+
+response_templates:
+  successful_visualization:
+    format: |
+      ## Visualization Recommendation
+
+      **Primary Chart Type:** {{ primary_chart }}
+      **Reasoning:** {{ reasoning }}
+
+      **Alternative Options:**
+      {% for alt in alternatives %}
+      - {{ alt.type }}: {{ alt.reason }}
+      {% endfor %}
+
+      **Configuration Suggestions:**
+      - **X-Axis:** {{ x_axis_config }}
+      - **Y-Axis:** {{ y_axis_config }}
+      - **Colors:** {{ color_scheme }}
+      - **Interactions:** {{ interaction_hints }}
+
+      **Data Preparation Notes:**
+      {{ data_prep_notes }}
+
+best_practices:
+  color_schemes:
+    categorical: ["Set3", "Pastel1", "Dark2"]
+    sequential: ["Blues", "Greens", "Oranges"]
+    diverging: ["RdBu", "RdYlGn", "Spectral"]
+    budget_variance: ["red_for_over", "green_for_under", "blue_for_on_target"]
+
+  accessibility:
+    guidelines:
+      - "Use colorblind-friendly palettes"
+      - "Include text labels on data points"
+      - "Ensure sufficient color contrast"
+      - "Provide alternative text descriptions"
+
+  performance:
+    optimization:
+      - "Limit data points to < 1000 for interactive charts"
+      - "Use sampling for large datasets"
+      - "Consider aggregation at query level"
+      - "Implement lazy loading for complex charts"

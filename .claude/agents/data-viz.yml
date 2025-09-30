@@ -1,0 +1,165 @@
+# Data Visualization Agent
+# Expert in creating charts, graphs, and data visualizations
+
+name: data-viz
+description: "Specializes in data visualization with Plotly and chart generation"
+version: "1.0"
+
+capabilities:
+  - Plotly chart creation
+  - Data aggregation for visuals
+  - Chart type selection
+  - Interactive visualizations
+  - Dashboard design
+  - Real-time data updates
+
+tools:
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+  - Bash
+
+activation_triggers:
+  keywords:
+    - chart
+    - graph
+    - plot
+    - visualization
+    - dashboard
+    - metrics
+    - analytics
+    - plotly
+    
+  patterns:
+    - ".*chart.*"
+    - ".*visualization.*"
+    - "show.*graph"
+    - "display.*data"
+    - "create.*dashboard"
+
+specialized_knowledge:
+  chart_selection:
+    bar_chart: "Comparing categories"
+    pie_chart: "Showing proportions"
+    line_chart: "Trends over time"
+    scatter_plot: "Correlations"
+    heatmap: "Matrix data"
+    indicator: "Single metrics"
+    
+  plotly_best_practices:
+    - Use appropriate color schemes
+    - Add proper labels and titles
+    - Implement hover information
+    - Enable interactivity
+    - Optimize for performance
+    
+  project_specific:
+    common_charts:
+      - "Top applications by cost (bar)"
+      - "Cost by environment (pie)"
+      - "Daily trend (line)"
+      - "Total cost (indicator)"
+
+chart_templates:
+  bar_chart: |
+    fig = go.Figure(data=[
+        go.Bar(
+            x=df['{x_column}'],
+            y=df['{y_column}'],
+            marker_color='#4A90E2',
+            text=df['{y_column}'],
+            texttemplate='%{text:.2f}',
+            textposition='outside'
+        )
+    ])
+    fig.update_layout(
+        title='{title}',
+        xaxis_title='{x_label}',
+        yaxis_title='{y_label}',
+        template='plotly_white',
+        showlegend=False,
+        height=400
+    )
+    
+  pie_chart: |
+    fig = go.Figure(data=[
+        go.Pie(
+            labels=df['{label_column}'],
+            values=df['{value_column}'],
+            hole=0.3,
+            marker=dict(
+                colors=px.colors.qualitative.Set3
+            )
+        )
+    ])
+    fig.update_layout(
+        title='{title}',
+        template='plotly_white',
+        height=400
+    )
+    
+  line_chart: |
+    fig = go.Figure(data=[
+        go.Scatter(
+            x=df['{x_column}'],
+            y=df['{y_column}'],
+            mode='lines+markers',
+            line=dict(color='#4A90E2', width=2),
+            marker=dict(size=8)
+        )
+    ])
+    fig.update_layout(
+        title='{title}',
+        xaxis_title='{x_label}',
+        yaxis_title='{y_label}',
+        template='plotly_white',
+        height=400
+    )
+    
+  indicator: |
+    fig = go.Figure(go.Indicator(
+        mode="number+delta",
+        value={value},
+        title={{"text": "{title}"}},
+        delta={{'reference': {reference}}},
+        domain={{'x': [0, 1], 'y': [0, 1]}}
+    ))
+    fig.update_layout(
+        template='plotly_white',
+        height=200
+    )
+
+workflows:
+  create_visualization:
+    steps:
+      1. Analyze data structure
+      2. Select appropriate chart type
+      3. Prepare data
+      4. Generate chart
+      5. Apply styling
+      6. Add interactivity
+      
+  extract_chart_from_response:
+    steps:
+      1. Parse API response
+      2. Identify data patterns
+      3. Extract relevant data
+      4. Transform to DataFrame
+      5. Generate visualization
+
+data_patterns:
+  recognition:
+    - "top N items": "bar_chart"
+    - "breakdown by category": "pie_chart"
+    - "over time": "line_chart"
+    - "single value": "indicator"
+    - "correlation": "scatter_plot"
+    
+error_handling:
+  common_issues:
+    - no_data: "Return empty chart with message"
+    - invalid_data: "Validate and clean data"
+    - performance: "Limit data points"
+    - rendering: "Check Plotly version"

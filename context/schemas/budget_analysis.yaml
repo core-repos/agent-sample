@@ -1,0 +1,68 @@
+table_name: budget_analysis
+dataset: agent_bq_dataset
+project: gac-prod-471220
+description: "Budget analysis table with fiscal year budget data by product and organization"
+
+schema:
+  - field_name: cto
+    mode: NULLABLE
+    type: STRING
+    description: "Chief Technology Officer organization (e.g., ENTERPRISE FINANCE TECH, PLATFORM ENGINEERING)"
+
+  - field_name: tr_product_pillar_team
+    mode: NULLABLE
+    type: STRING
+    description: "Product pillar team name (e.g., Data Science Platform, Infrastructure Services)"
+
+  - field_name: tr_subpillar_name
+    mode: NULLABLE
+    type: STRING
+    description: "Sub-pillar name within the product pillar team"
+
+  - field_name: tr_product_id
+    mode: NULLABLE
+    type: INTEGER
+    description: "Unique product identifier (e.g., 700, 701, 702)"
+
+  - field_name: tr_product
+    mode: NULLABLE
+    type: STRING
+    description: "Product name (e.g., experimentation platform, model training, inference engine)"
+
+  - field_name: fy_24_budget
+    mode: NULLABLE
+    type: FLOAT
+    description: "Fiscal Year 2024 budget allocation in USD"
+
+  - field_name: fy_25_budget
+    mode: NULLABLE
+    type: FLOAT
+    description: "Fiscal Year 2025 budget allocation in USD"
+
+  - field_name: fy_26_budget
+    mode: NULLABLE
+    type: FLOAT
+    description: "Fiscal Year 2026 budget allocation in USD"
+
+  - field_name: fy26_ytd_spend
+    mode: NULLABLE
+    type: FLOAT
+    description: "Fiscal Year 2026 year-to-date spending in USD"
+
+  - field_name: fy26_projected_spend
+    mode: NULLABLE
+    type: FLOAT
+    description: "Fiscal Year 2026 projected total spending in USD"
+
+important_notes:
+  - "DO NOT use any field names other than those listed above"
+  - "NO budget_id field exists - do not reference it"
+  - "NO budget_name field exists - use tr_product instead"
+  - "Use tr_product_id for product identification, not budget_id"
+  - "All budget amounts are in USD and stored as FLOAT type"
+  - "Fiscal year fields follow naming pattern: fy_XX_budget and fy26_XXX"
+
+sample_queries:
+  - "SELECT SUM(fy_26_budget) FROM budget_analysis"
+  - "SELECT tr_product_id, tr_product, fy_26_budget FROM budget_analysis WHERE fy_26_budget > 1000000"
+  - "SELECT cto, SUM(fy_26_budget) FROM budget_analysis GROUP BY cto"

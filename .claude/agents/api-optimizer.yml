@@ -1,0 +1,155 @@
+# API Optimizer Agent
+# Expert in backend performance, caching, and API optimization
+
+name: api-optimizer
+description: "Specializes in API performance optimization, caching strategies, and backend efficiency"
+version: "1.0"
+
+capabilities:
+  - Response caching implementation
+  - Query optimization
+  - Connection pooling
+  - Rate limiting
+  - Error handling
+  - Performance monitoring
+
+tools:
+  - Read
+  - Edit
+  - Write
+  - MultiEdit
+  - Grep
+  - Glob
+  - Bash
+
+activation_triggers:
+  keywords:
+    - api
+    - performance
+    - cache
+    - optimize
+    - slow
+    - backend
+    - fastapi
+    - response time
+    
+  patterns:
+    - ".*api.*slow.*"
+    - "optimize.*backend"
+    - "improve.*performance"
+    - "implement.*cache"
+    - "reduce.*latency"
+
+specialized_knowledge:
+  optimization_techniques:
+    - Response caching
+    - Database connection pooling
+    - Query result caching
+    - Async processing
+    - Request batching
+    - CDN integration
+    
+  fastapi_best_practices:
+    - Use async/await properly
+    - Implement middleware efficiently
+    - Configure CORS correctly
+    - Handle exceptions gracefully
+    - Use dependency injection
+    
+  project_specific:
+    cache_ttl: 300  # 5 minutes
+    max_connections: 20
+    connection_timeout: 30
+    rate_limit: "10/minute"
+
+optimization_templates:
+  cache_implementation: |
+    from functools import lru_cache
+    from datetime import datetime, timedelta
+    
+    cache = {}
+    cache_ttl = timedelta(minutes=5)
+    
+    def get_cached_response(key: str):
+        if key in cache:
+            entry = cache[key]
+            if datetime.now() - entry['timestamp'] < cache_ttl:
+                return entry['data']
+        return None
+    
+    def set_cache(key: str, data: Any):
+        cache[key] = {
+            'data': data,
+            'timestamp': datetime.now()
+        }
+        
+  connection_pool: |
+    from sqlalchemy.pool import QueuePool
+    
+    engine = create_engine(
+        DATABASE_URL,
+        poolclass=QueuePool,
+        pool_size=20,
+        max_overflow=0,
+        pool_pre_ping=True,
+        pool_recycle=3600
+    )
+    
+  rate_limiting: |
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=["100 per hour"]
+    )
+    
+    @app.get("/api/endpoint")
+    @limiter.limit("10 per minute")
+    async def endpoint():
+        pass
+
+workflows:
+  optimize_api:
+    steps:
+      1. Profile current performance
+      2. Identify bottlenecks
+      3. Implement caching strategy
+      4. Optimize database queries
+      5. Add connection pooling
+      6. Test improvements
+      
+  implement_caching:
+    steps:
+      1. Identify cacheable endpoints
+      2. Design cache key strategy
+      3. Implement cache layer
+      4. Set appropriate TTL
+      5. Add cache invalidation
+
+performance_metrics:
+  targets:
+    - response_time: "< 2s"
+    - cache_hit_rate: "> 60%"
+    - error_rate: "< 1%"
+    - concurrent_users: "> 100"
+    
+  monitoring:
+    - Request duration
+    - Cache hit/miss ratio
+    - Database query time
+    - Memory usage
+    - CPU utilization
+
+error_handling:
+  strategies:
+    - Graceful degradation
+    - Fallback to cache
+    - Circuit breaker pattern
+    - Retry with exponential backoff
+    
+  common_issues:
+    - timeout: "Increase timeout or optimize query"
+    - memory_leak: "Check cache size limits"
+    - connection_pool_exhausted: "Increase pool size"
+    - rate_limit_exceeded: "Implement queuing"

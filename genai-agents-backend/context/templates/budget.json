@@ -1,0 +1,59 @@
+{
+  "templates": {
+    "fy26_budget_utilization": {
+      "name": "fy26_budget_utilization",
+      "description": "Calculate FY26 budget utilization by team and product",
+      "category": "budget",
+      "template": "SELECT tr_product_pillar_team, tr_product, fy_26_budget, fy26_ytd_spend, fy26_projected_spend, ROUND((fy26_ytd_spend / fy_26_budget) * 100, 2) as ytd_utilization_pct, ROUND((fy26_projected_spend / fy_26_budget) * 100, 2) as projected_utilization_pct, CASE WHEN fy26_projected_spend > fy_26_budget THEN 'Over Budget' WHEN (fy26_projected_spend / fy_26_budget) > 0.9 THEN 'Near Budget' ELSE 'Under Budget' END as status FROM {{ budget_table }} {% if team_filter %}WHERE tr_product_pillar_team = '{{ team_filter }}'{% endif %} ORDER BY projected_utilization_pct DESC",
+      "parameters": [
+        "budget_table",
+        "team_filter"
+      ],
+      "example": "SELECT tr_product_pillar_team, fy_26_budget, fy26_ytd_spend, fy26_projected_spend FROM budget_analysis WHERE tr_product_pillar_team = 'ENTERPRISE FINANCE TECH'"
+    },
+    "budget_variance_by_cto": {
+      "name": "budget_variance_by_cto",
+      "description": "Calculate budget variance by CTO organization",
+      "category": "budget",
+      "template": "SELECT cto, SUM(fy_26_budget) as total_fy26_budget, SUM(fy26_ytd_spend) as total_ytd_spend, SUM(fy26_projected_spend) as total_projected_spend, SUM(fy26_projected_spend - fy_26_budget) as projected_variance, ROUND((SUM(fy26_ytd_spend) / SUM(fy_26_budget)) * 100, 2) as ytd_utilization_pct FROM {{ budget_table }} {% if additional_filters %}WHERE {{ additional_filters }}{% endif %} GROUP BY cto ORDER BY projected_variance DESC",
+      "parameters": [
+        "budget_table",
+        "additional_filters"
+      ],
+      "example": "SELECT cto, SUM(fy_26_budget) as budget, SUM(fy26_projected_spend) as projected FROM budget_analysis GROUP BY cto"
+    },
+    "fiscal_year_comparison": {
+      "name": "fiscal_year_comparison",
+      "description": "Compare budget allocation across fiscal years",
+      "category": "budget",
+      "template": "SELECT tr_product_pillar_team, tr_product, fy_24_budget, fy_25_budget, fy_26_budget, ROUND(((fy_25_budget - fy_24_budget) / fy_24_budget) * 100, 2) as fy24_to_fy25_growth_pct, ROUND(((fy_26_budget - fy_25_budget) / fy_25_budget) * 100, 2) as fy25_to_fy26_growth_pct FROM {{ budget_table }} {% if product_filter %}WHERE tr_product LIKE '%{{ product_filter }}%'{% endif %} ORDER BY fy_26_budget DESC",
+      "parameters": [
+        "budget_table",
+        "product_filter"
+      ],
+      "example": "SELECT tr_product, fy_24_budget, fy_25_budget, fy_26_budget FROM budget_analysis ORDER BY fy_26_budget DESC"
+    },
+    "overspend_risk_analysis": {
+      "name": "overspend_risk_analysis",
+      "description": "Identify products at risk of overspending in FY26",
+      "category": "budget",
+      "template": "SELECT tr_product_pillar_team, tr_subpillar_name, tr_product, fy_26_budget, fy26_ytd_spend, fy26_projected_spend, ROUND(fy26_projected_spend - fy_26_budget, 2) as projected_overspend, ROUND(((fy26_projected_spend - fy_26_budget) / fy_26_budget) * 100, 2) as overspend_pct FROM {{ budget_table }} WHERE fy26_projected_spend > fy_26_budget {% if risk_threshold %}AND ((fy26_projected_spend - fy_26_budget) / fy_26_budget) > {{ risk_threshold }}{% endif %} ORDER BY overspend_pct DESC",
+      "parameters": [
+        "budget_table",
+        "risk_threshold"
+      ],
+      "example": "SELECT tr_product, fy_26_budget, fy26_projected_spend FROM budget_analysis WHERE fy26_projected_spend > fy_26_budget"
+    },
+    "team_budget_summary": {
+      "name": "team_budget_summary",
+      "description": "Summarize budget allocation and spending by team",
+      "category": "budget",
+      "template": "SELECT tr_product_pillar_team, cto, COUNT(*) as product_count, SUM(fy_26_budget) as total_fy26_budget, SUM(fy26_ytd_spend) as total_ytd_spend, SUM(fy26_projected_spend) as total_projected_spend, ROUND(AVG(fy26_ytd_spend / fy_26_budget) * 100, 2) as avg_utilization_pct, SUM(CASE WHEN fy26_projected_spend > fy_26_budget THEN 1 ELSE 0 END) as products_over_budget FROM {{ budget_table }} {% if cto_filter %}WHERE cto = '{{ cto_filter }}'{% endif %} GROUP BY tr_product_pillar_team, cto ORDER BY total_fy26_budget DESC",
+      "parameters": [
+        "budget_table",
+        "cto_filter"
+      ],
+      "example": "SELECT tr_product_pillar_team, COUNT(*) as products, SUM(fy_26_budget) as budget FROM budget_analysis GROUP BY tr_product_pillar_team"
+    }
+  }
+}

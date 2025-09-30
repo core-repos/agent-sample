@@ -1,0 +1,38 @@
+examples:
+  - question: "What is the total FY26 budget?"
+    sql: "SELECT SUM(fy_26_budget) AS total_fy26_budget FROM `gac-prod-471220`.`agent_bq_dataset`.`budget_analysis`"
+    description: "Simple aggregation of FY26 budget across all products"
+
+  - question: "Show me products with budgets over 5 million"
+    sql: "SELECT tr_product_id, tr_product, fy_26_budget FROM `gac-prod-471220`.`agent_bq_dataset`.`budget_analysis` WHERE fy_26_budget > 5000000 ORDER BY fy_26_budget DESC"
+    description: "Filter products by budget threshold"
+
+  - question: "Budget summary by CTO organization"
+    sql: "SELECT cto, SUM(fy_26_budget) AS total_budget, COUNT(tr_product_id) AS num_products FROM `gac-prod-471220`.`agent_bq_dataset`.`budget_analysis` GROUP BY cto ORDER BY total_budget DESC"
+    description: "Aggregate budget data by CTO organization"
+
+  - question: "Which products are over budget?"
+    sql: "SELECT tr_product_id, tr_product, fy_26_budget, fy26_projected_spend, (fy26_projected_spend - fy_26_budget) AS overspend FROM `gac-prod-471220`.`agent_bq_dataset`.`budget_analysis` WHERE fy26_projected_spend > fy_26_budget ORDER BY overspend DESC"
+    description: "Identify products exceeding their budget"
+
+  - question: "Budget utilization percentage by product"
+    sql: "SELECT tr_product_id, tr_product, fy_26_budget, fy26_ytd_spend, ROUND((fy26_ytd_spend / fy_26_budget) * 100, 2) AS utilization_pct FROM `gac-prod-471220`.`agent_bq_dataset`.`budget_analysis` ORDER BY utilization_pct DESC"
+    description: "Calculate budget utilization percentage"
+
+  - question: "Budget growth from FY24 to FY26"
+    sql: "SELECT tr_product_id, tr_product, fy_24_budget, fy_26_budget, ROUND(((fy_26_budget - fy_24_budget) / fy_24_budget) * 100, 2) AS growth_pct FROM `gac-prod-471220`.`agent_bq_dataset`.`budget_analysis` WHERE fy_24_budget > 0 ORDER BY growth_pct DESC"
+    description: "Calculate budget growth over fiscal years"
+
+field_usage_rules:
+  - "Always use tr_product_id for product identification"
+  - "Use tr_product for product names"
+  - "Use cto for organization grouping"
+  - "Budget fields: fy_24_budget, fy_25_budget, fy_26_budget"
+  - "Spending fields: fy26_ytd_spend, fy26_projected_spend"
+  - "Never reference budget_id, budget_name, or any non-existent fields"
+
+common_patterns:
+  - aggregation: "SUM(fy_26_budget)"
+  - filtering: "WHERE fy_26_budget > threshold"
+  - grouping: "GROUP BY cto, tr_product_pillar_team"
+  - calculation: "ROUND((fy26_ytd_spend / fy_26_budget) * 100, 2)"

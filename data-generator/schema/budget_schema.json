@@ -1,0 +1,62 @@
+[
+  {
+    "name": "cto",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Chief Technology Organization (e.g., Engineering, Data & Analytics, Security & Compliance, Operations)"
+  },
+  {
+    "name": "tr_product_pillar_team",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Product pillar team name (matches tr_product_pillar_team from cost_analysis)"
+  },
+  {
+    "name": "tr_subpillar_name",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Sub-pillar name within the product pillar team"
+  },
+  {
+    "name": "tr_product_id",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "Unique product identifier"
+  },
+  {
+    "name": "tr_product",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Product name or service description"
+  },
+  {
+    "name": "fy_24_budget",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Fiscal Year 2024 allocated budget in USD"
+  },
+  {
+    "name": "fy_25_budget",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Fiscal Year 2025 allocated budget in USD"
+  },
+  {
+    "name": "fy_26_budget",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Fiscal Year 2026 allocated budget in USD"
+  },
+  {
+    "name": "fy26_ytd_spend",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Fiscal Year 2026 year-to-date spending in USD"
+  },
+  {
+    "name": "fy26_projected_spend",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Fiscal Year 2026 projected total spending in USD"
+  }
+]

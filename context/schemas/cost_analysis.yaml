@@ -1,0 +1,98 @@
+table_name: cost_analysis
+dataset: agent_bq_dataset
+project: gac-prod-471220
+description: "Cost analysis table with daily cost data by cloud provider, application, and service following the organizational hierarchy: cto -> tr_product_pillar_team -> tr_subpillar_name -> tr_product_id -> apm_id -> application"
+
+hierarchy_explanation: |
+  The organizational hierarchy flows as follows:
+  1. cto (Chief Technology Officer organization)
+  2. tr_product_pillar_team (Product pillar team under the CTO)
+  3. tr_subpillar_name (Sub-pillar within the product pillar team)
+  4. tr_product_id (Unique product identifier within the sub-pillar)
+  5. apm_id (Application Portfolio Management ID for grouping applications under a product)
+  6. application (Individual application under the APM ID)
+
+schema:
+  - field_name: date
+    mode: NULLABLE
+    type: DATE
+    description: "Date of the cost entry"
+
+  - field_name: cto
+    mode: NULLABLE
+    type: STRING
+    description: "Chief Technology Officer organization - top level of the hierarchy (e.g., ENTERPRISE FINANCE TECH, PLATFORM ENGINEERING)"
+
+  - field_name: cloud
+    mode: NULLABLE
+    type: STRING
+    description: "Cloud provider (AWS, Azure, GCP)"
+
+  - field_name: tr_product_pillar_team
+    mode: NULLABLE
+    type: STRING
+    description: "Product pillar team name - second level in hierarchy under cto (e.g., Data Science Platform, Infrastructure Services)"
+
+  - field_name: tr_subpillar_name
+    mode: NULLABLE
+    type: STRING
+    description: "Sub-pillar name within the product pillar team - third level in hierarchy"
+
+  - field_name: tr_product_id
+    mode: NULLABLE
+    type: INTEGER
+    description: "Unique product identifier - fourth level in hierarchy (e.g., 700, 701, 702)"
+
+  - field_name: tr_product
+    mode: NULLABLE
+    type: STRING
+    description: "Product name corresponding to tr_product_id (e.g., experimentation platform, model training, inference engine)"
+
+  - field_name: apm_id
+    mode: NULLABLE
+    type: STRING
+    description: "Application Portfolio Management ID - fifth level in hierarchy between tr_product_id and application. Groups related applications under a product for portfolio management purposes"
+
+  - field_name: application
+    mode: NULLABLE
+    type: STRING
+    description: "Application name - sixth level in hierarchy under apm_id. Individual application within the APM portfolio"
+
+  - field_name: service_name
+    mode: NULLABLE
+    type: STRING
+    description: "Service name within the application"
+
+  - field_name: managed_service
+    mode: NULLABLE
+    type: STRING
+    description: "Cloud managed service (e.g., Compute Engine, Lambda, Azure VM)"
+
+  - field_name: environment
+    mode: NULLABLE
+    type: STRING
+    description: "Environment (PROD, NON-PROD)"
+
+  - field_name: cost
+    mode: NULLABLE
+    type: FLOAT
+    description: "Daily cost in USD"
+
+important_notes:
+  - "DO NOT use any field names other than those listed above"
+  - "NO cost_id field exists - do not reference it"
+  - "NO cost_name field exists - use application or service_name instead"
+  - "Use tr_product_id for product identification"
+  - "Use apm_id for Application Portfolio Management grouping"
+  - "All cost amounts are in USD and stored as FLOAT type"
+  - "Date field is DATE type for daily cost entries"
+  - "Environment values are typically PROD or NON-PROD"
+  - "The hierarchy flows: cto -> tr_product_pillar_team -> tr_subpillar_name -> tr_product_id -> apm_id -> application"
+
+sample_queries:
+  - "SELECT SUM(cost) FROM cost_analysis WHERE date >= '2024-01-01'"
+  - "SELECT cloud, SUM(cost) FROM cost_analysis GROUP BY cloud"
+  - "SELECT application, SUM(cost) FROM cost_analysis WHERE environment = 'PROD' GROUP BY application"
+  - "SELECT tr_product_id, tr_product, SUM(cost) FROM cost_analysis GROUP BY tr_product_id, tr_product ORDER BY SUM(cost) DESC"
+  - "SELECT apm_id, SUM(cost) FROM cost_analysis GROUP BY apm_id ORDER BY SUM(cost) DESC"
+  - "SELECT cto, tr_product_pillar_team, tr_subpillar_name, tr_product_id, apm_id, application, SUM(cost) FROM cost_analysis GROUP BY cto, tr_product_pillar_team, tr_subpillar_name, tr_product_id, apm_id, application ORDER BY SUM(cost) DESC"

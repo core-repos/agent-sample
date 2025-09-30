@@ -1,0 +1,55 @@
+# Budget Analysis Schema Definition
+tables:
+  budget_analysis:
+    description: "Budget allocations and spending projections by product and fiscal year"
+    columns:
+      - name: cto
+        type: STRING
+        description: "CTO organization"
+        nullable: true
+      - name: tr_product_pillar_team
+        type: STRING
+        description: "Product pillar team"
+        nullable: true
+      - name: tr_subpillar_name
+        type: STRING
+        description: "Sub-pillar name"
+        nullable: true
+      - name: tr_product_id
+        type: INTEGER
+        description: "Product identifier"
+        nullable: true
+      - name: tr_product
+        type: STRING
+        description: "Product name"
+        nullable: true
+      - name: fy_24_budget
+        type: FLOAT64
+        description: "Fiscal Year 2024 budget allocation in USD"
+        nullable: true
+      - name: fy_25_budget
+        type: FLOAT64
+        description: "Fiscal Year 2025 budget allocation in USD"
+        nullable: true
+      - name: fy_26_budget
+        type: FLOAT64
+        description: "Fiscal Year 2026 budget allocation in USD"
+        nullable: true
+      - name: fy26_ytd_spend
+        type: FLOAT64
+        description: "Fiscal Year 2026 year-to-date spending in USD"
+        nullable: true
+      - name: fy26_projected_spend
+        type: FLOAT64
+        description: "Fiscal Year 2026 projected total spending in USD"
+        nullable: true
+    sample_queries:
+      - "SELECT SUM(fy_26_budget) as total_fy26_budget FROM budget_analysis"
+      - "SELECT tr_product_pillar_team, SUM(fy_26_budget) as team_budget FROM budget_analysis GROUP BY tr_product_pillar_team ORDER BY team_budget DESC"
+      - "SELECT tr_product, fy_26_budget, fy26_ytd_spend, fy26_projected_spend FROM budget_analysis WHERE fy_26_budget > 0 ORDER BY fy_26_budget DESC"
+      - "SELECT cto, SUM(fy_26_budget) as cto_budget, SUM(fy26_projected_spend) as cto_projected FROM budget_analysis GROUP BY cto"
+      - "SELECT tr_product_id, tr_product, (fy26_projected_spend - fy_26_budget) as budget_variance FROM budget_analysis WHERE fy_26_budget > 0 AND fy26_projected_spend > 0"
+    relationships:
+      - target_table: "cost_analysis"
+        join_key: "tr_product_id"
+        relationship_type: "one_to_many"

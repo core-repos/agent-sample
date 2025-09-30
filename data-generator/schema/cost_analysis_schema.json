@@ -1,0 +1,15 @@
+[
+  {"name": "date", "type": "DATE", "mode": "NULLABLE", "description": "Date of the cost entry"},
+  {"name": "cto", "type": "STRING", "mode": "NULLABLE", "description": "CTO/Tech leadership organization - top level of the hierarchy"},
+  {"name": "cloud", "type": "STRING", "mode": "NULLABLE", "description": "Cloud provider (AWS, Azure, GCP)"},
+  {"name": "tr_product_pillar_team", "type": "STRING", "mode": "NULLABLE", "description": "Product pillar team - second level in hierarchy under cto"},
+  {"name": "tr_subpillar_name", "type": "STRING", "mode": "NULLABLE", "description": "Sub-pillar name - third level in hierarchy under tr_product_pillar_team"},
+  {"name": "tr_product_id", "type": "INTEGER", "mode": "NULLABLE", "description": "Product ID - fourth level in hierarchy under tr_subpillar_name"},
+  {"name": "tr_product", "type": "STRING", "mode": "NULLABLE", "description": "Product name corresponding to tr_product_id"},
+  {"name": "apm_id", "type": "STRING", "mode": "NULLABLE", "description": "Application Portfolio Management ID - fifth level in hierarchy between tr_product_id and application"},
+  {"name": "application", "type": "STRING", "mode": "NULLABLE", "description": "Application name - sixth level in hierarchy under apm_id"},
+  {"name": "service_name", "type": "STRING", "mode": "NULLABLE", "description": "Service name within the application"},
+  {"name": "managed_service", "type": "STRING", "mode": "NULLABLE", "description": "Cloud managed service"},
+  {"name": "environment", "type": "STRING", "mode": "NULLABLE", "description": "Environment (PROD, NON-PROD)"},
+  {"name": "cost", "type": "FLOAT", "mode": "NULLABLE", "description": "Daily cost in USD"}
+]

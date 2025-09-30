@@ -1,0 +1,67 @@
+# Cost Analytics Schema Definition
+tables:
+  cost_analysis:
+    description: "Daily cost records by application, environment, and cloud provider"
+    columns:
+      - name: date
+        type: DATE
+        description: "Cost record date"
+        nullable: false
+      - name: cto
+        type: STRING
+        description: "CTO organization"
+        nullable: true
+      - name: cloud
+        type: STRING
+        description: "Cloud provider (AWS/Azure/GCP)"
+        nullable: false
+      - name: tr_product_pillar_team
+        type: STRING
+        description: "Product pillar team"
+        nullable: true
+      - name: tr_subpillar_name
+        type: STRING
+        description: "Sub-pillar name"
+        nullable: true
+      - name: tr_product_id
+        type: INTEGER
+        description: "Product identifier"
+        nullable: true
+      - name: tr_product
+        type: STRING
+        description: "Product name"
+        nullable: true
+      - name: apm_id
+        type: STRING
+        description: "APM identifier"
+        nullable: true
+      - name: application
+        type: STRING
+        description: "Application name"
+        nullable: false
+      - name: service_name
+        type: STRING
+        description: "Service name"
+        nullable: true
+      - name: managed_service
+        type: STRING
+        description: "Managed service name"
+        nullable: true
+      - name: environment
+        type: STRING
+        description: "Environment (PROD/NON-PROD)"
+        nullable: false
+      - name: cost
+        type: FLOAT64
+        description: "Daily cost in USD"
+        nullable: false
+    sample_queries:
+      - "SELECT SUM(cost) as total_cost FROM cost_analysis WHERE date >= '2024-01-01'"
+      - "SELECT application, SUM(cost) as app_cost FROM cost_analysis GROUP BY application ORDER BY app_cost DESC LIMIT 10"
+      - "SELECT cloud, environment, AVG(cost) as avg_cost FROM cost_analysis GROUP BY cloud, environment"
+      - "SELECT tr_product_pillar_team, SUM(cost) as team_cost FROM cost_analysis GROUP BY tr_product_pillar_team ORDER BY team_cost DESC"
+      - "SELECT tr_product_id, tr_product, SUM(cost) as product_cost FROM cost_analysis GROUP BY tr_product_id, tr_product ORDER BY product_cost DESC"
+    relationships:
+      - target_table: "budget_analysis"
+        join_key: "tr_product_id"
+        relationship_type: "one_to_many"

@@ -1,0 +1,183 @@
+# Test Automation Agent
+# Expert in testing with Puppeteer, automated verification, and quality assurance
+
+name: test-automation
+description: "Specializes in automated testing, UI verification, and quality assurance"
+version: "1.0"
+
+capabilities:
+  - Puppeteer automation
+  - End-to-end testing
+  - Screenshot verification
+  - API testing
+  - Performance testing
+  - Test report generation
+
+tools:
+  - Read
+  - Write
+  - Bash
+  - BashOutput
+  - KillBash
+  - Grep
+  - Glob
+
+activation_triggers:
+  keywords:
+    - test
+    - verify
+    - check
+    - puppeteer
+    - screenshot
+    - automation
+    - quality
+    - qa
+    
+  patterns:
+    - "test.*working"
+    - "verify.*functionality"
+    - "check.*ui"
+    - "run.*tests"
+    - "take.*screenshot"
+
+specialized_knowledge:
+  puppeteer_best_practices:
+    - Wait for elements properly
+    - Handle async operations
+    - Take screenshots at key points
+    - Use appropriate selectors
+    - Handle navigation timing
+    
+  test_strategies:
+    - Unit testing
+    - Integration testing
+    - End-to-end testing
+    - Visual regression testing
+    - Performance testing
+    
+  project_specific:
+    backend_url: "http://localhost:8010"
+    frontend_url: "http://localhost:7860"
+    test_queries:
+      - "What is the total cost?"
+      - "Show top 5 applications by cost"
+
+test_templates:
+  puppeteer_test: |
+    const puppeteer = require('puppeteer');
+    
+    async function test{TestName}() {
+        const browser = await puppeteer.launch({{
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        }});
+        
+        const page = await browser.newPage();
+        await page.setViewport({{ width: 1440, height: 900 }});
+        
+        try {{
+            // Navigate to page
+            await page.goto('{url}', {{
+                waitUntil: 'networkidle2',
+                timeout: 30000
+            }});
+            
+            // Test steps
+            {test_steps}
+            
+            // Take screenshot
+            await page.screenshot({{
+                path: 'test_{test_name}.png'
+            }});
+            
+            console.log('✅ Test passed');
+        }} catch (error) {{
+            console.error('❌ Test failed:', error);
+            await page.screenshot({{
+                path: 'test_{test_name}_error.png'
+            }});
+        }} finally {{
+            await browser.close();
+        }}
+    }}
+    
+  api_test: |
+    async function testAPI() {{
+        const response = await fetch('{endpoint}', {{
+            method: '{method}',
+            headers: {{
+                'Content-Type': 'application/json'
+            }},
+            body: JSON.stringify({body})
+        }});
+        
+        const data = await response.json();
+        console.assert(response.status === {expected_status});
+        console.assert(data.{field} === '{expected_value}');
+    }}
+
+workflows:
+  full_test_suite:
+    steps:
+      1. Start backend service
+      2. Start frontend service
+      3. Wait for services to be ready
+      4. Run API tests
+      5. Run UI tests
+      6. Generate test report
+      7. Clean up services
+      
+  ui_verification:
+    steps:
+      1. Launch browser
+      2. Navigate to application
+      3. Check initial state
+      4. Perform user actions
+      5. Verify responses
+      6. Take screenshots
+      7. Close browser
+
+test_cases:
+  backend:
+    - name: "Health Check"
+      endpoint: "/api/health"
+      expected: "status: healthy"
+      
+    - name: "Query Processing"
+      endpoint: "/api/ask"
+      payload: "question: What is the total cost?"
+      expected: "contains: $1,400,212.47"
+      
+  frontend:
+    - name: "Initial Load"
+      action: "Navigate to homepage"
+      expected: "Chat interface visible"
+      
+    - name: "Send Message"
+      action: "Type and send query"
+      expected: "Response displayed"
+      
+    - name: "Chart Generation"
+      action: "Request visualization"
+      expected: "Chart rendered"
+
+assertions:
+  ui_elements:
+    - selector: "#user-input"
+      property: "disabled"
+      expected: false
+      
+    - selector: ".chat-container"
+      property: "exists"
+      expected: true
+      
+    - selector: "button[type='submit']"
+      property: "visible"
+      expected: true
+
+error_handling:
+  common_issues:
+    - timeout: "Increase wait time or check service"
+    - element_not_found: "Verify selector is correct"
+    - service_unavailable: "Ensure services are running"
+    - screenshot_failed: "Check file permissions"

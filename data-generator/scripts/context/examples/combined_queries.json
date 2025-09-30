@@ -1,0 +1,222 @@
+{
+  "metadata": {
+    "tables": ["cost_analysis", "budget"],
+    "dataset": "agent_bq_dataset",
+    "description": "SQL query examples for combined cost vs fiscal year budget analysis and variance reporting",
+    "version": "2.0.0",
+    "created_date": "2024-09-29",
+    "query_categories": ["cost_vs_budget", "fiscal_year_analysis", "product_performance", "variance_analysis", "forecasting", "financial_reporting"]
+  },
+  "query_examples": {
+    "cost_vs_budget_analysis": {
+      "cost_vs_fy26_budget_by_team": {
+        "description": "Compare actual costs vs FY26 budget allocation by product team",
+        "sql": "WITH team_costs AS (SELECT tr_product_pillar_team, SUM(cost) as actual_cost, COUNT(DISTINCT application) as app_count FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '2025-10-01' AND date <= CURRENT_DATE() GROUP BY tr_product_pillar_team), team_budgets AS (SELECT tr_product_pillar_team, SUM(fy_26_budget) as allocated_budget, SUM(fy26_ytd_spend) as ytd_budget_spend, SUM(fy26_projected_spend) as projected_spend FROM `{{ project_id }}.{{ dataset }}.budget` GROUP BY tr_product_pillar_team) SELECT COALESCE(c.tr_product_pillar_team, b.tr_product_pillar_team) as product_team, COALESCE(c.actual_cost, 0) as actual_cost, COALESCE(c.app_count, 0) as application_count, COALESCE(b.allocated_budget, 0) as fy26_budget, COALESCE(b.ytd_budget_spend, 0) as budget_ytd_spend, COALESCE(b.projected_spend, 0) as budget_projected_spend, COALESCE(c.actual_cost, 0) - COALESCE(b.ytd_budget_spend, 0) as cost_vs_budget_variance, CASE WHEN b.allocated_budget > 0 THEN ROUND((COALESCE(c.actual_cost, 0) / b.allocated_budget) * 100, 2) ELSE NULL END as cost_to_budget_ratio_pct FROM team_costs c FULL OUTER JOIN team_budgets b ON c.tr_product_pillar_team = b.tr_product_pillar_team ORDER BY ABS(COALESCE(c.actual_cost, 0) - COALESCE(b.ytd_budget_spend, 0)) DESC",
+        "expected_result_type": "variance_comparison",
+        "visualization_hint": "waterfall_chart",
+        "parameters": {},
+        "tags": ["cost_vs_budget", "fy26", "team_analysis"]
+      },
+      "cost_vs_budget_by_cto_organization": {
+        "description": "Compare actual costs vs FY26 budget allocation by CTO organization",
+        "sql": "WITH cto_costs AS (SELECT CASE WHEN c.tr_product_pillar_team IS NOT NULL THEN b.cto ELSE 'Unallocated' END as cto_org, SUM(c.cost) as actual_ytd_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` c LEFT JOIN `{{ project_id }}.{{ dataset }}.budget` b ON c.tr_product_pillar_team = b.tr_product_pillar_team WHERE c.date >= '2025-10-01' AND c.date <= CURRENT_DATE() GROUP BY cto_org), cto_budgets AS (SELECT cto, SUM(fy_26_budget) as total_fy26_budget, SUM(fy26_ytd_spend) as total_ytd_spend, SUM(fy26_projected_spend) as total_projected_spend FROM `{{ project_id }}.{{ dataset }}.budget` GROUP BY cto) SELECT COALESCE(cc.cto_org, cb.cto) as cto_organization, COALESCE(cc.actual_ytd_cost, 0) as actual_ytd_cost, COALESCE(cb.total_fy26_budget, 0) as fy26_allocated_budget, COALESCE(cb.total_ytd_spend, 0) as budget_ytd_spend, COALESCE(cb.total_projected_spend, 0) as budget_projected_spend, COALESCE(cc.actual_ytd_cost, 0) - COALESCE(cb.total_ytd_spend, 0) as cost_budget_variance, CASE WHEN cb.total_fy26_budget > 0 THEN ROUND((COALESCE(cc.actual_ytd_cost, 0) / cb.total_fy26_budget) * 100, 2) ELSE NULL END as cost_to_budget_ratio_pct, CASE WHEN cb.total_projected_spend > cb.total_fy26_budget THEN 'OVER_BUDGET' WHEN cb.total_projected_spend > cb.total_fy26_budget * 0.9 THEN 'AT_RISK' ELSE 'ON_TRACK' END as budget_status FROM cto_costs cc FULL OUTER JOIN cto_budgets cb ON cc.cto_org = cb.cto ORDER BY cost_budget_variance DESC",
+        "expected_result_type": "organizational_analysis",
+        "visualization_hint": "bar_chart",
+        "parameters": {},
+        "tags": ["cto_organization", "variance", "fy26"]
+      },
+      "product_level_cost_vs_budget": {
+        "description": "Product-level analysis comparing actual costs vs FY26 budget allocation",
+        "sql": "WITH product_costs AS (SELECT b.tr_product_id, b.tr_product, b.tr_product_pillar_team, SUM(c.cost) as actual_cost FROM `{{ project_id }}.{{ dataset }}.budget` b LEFT JOIN `{{ project_id }}.{{ dataset }}.cost_analysis` c ON b.tr_product_pillar_team = c.tr_product_pillar_team WHERE c.date >= '2025-10-01' AND c.date <= CURRENT_DATE() GROUP BY b.tr_product_id, b.tr_product, b.tr_product_pillar_team) SELECT b.tr_product_id, b.tr_product, b.tr_product_pillar_team, b.cto, b.tr_subpillar_name, COALESCE(pc.actual_cost, 0) as actual_cost, b.fy_26_budget, b.fy26_ytd_spend, b.fy26_projected_spend, COALESCE(pc.actual_cost, 0) - b.fy26_ytd_spend as cost_budget_variance, CASE WHEN b.fy_26_budget > 0 THEN ROUND((COALESCE(pc.actual_cost, 0) / b.fy_26_budget) * 100, 2) ELSE NULL END as cost_efficiency_pct, CASE WHEN b.fy26_projected_spend > b.fy_26_budget * 1.1 THEN 'HIGH_RISK' WHEN b.fy26_projected_spend > b.fy_26_budget THEN 'OVER_BUDGET' WHEN COALESCE(pc.actual_cost, 0) > b.fy26_ytd_spend * 1.2 THEN 'COST_VARIANCE' ELSE 'NORMAL' END as risk_category FROM `{{ project_id }}.{{ dataset }}.budget` b LEFT JOIN product_costs pc ON b.tr_product_id = pc.tr_product_id WHERE b.fy_26_budget > {{ min_budget_threshold }} ORDER BY cost_budget_variance DESC",
+        "expected_result_type": "product_analysis",
+        "visualization_hint": "scatter_plot",
+        "parameters": {
+          "min_budget_threshold": 5000
+        },
+        "tags": ["product_level", "cost_efficiency", "risk_analysis"]
+      },
+      "monthly_cost_vs_budget_trend": {
+        "description": "Monthly trend analysis of actual costs vs FY26 budget progression",
+        "sql": "WITH monthly_costs AS (SELECT DATE_TRUNC(date, MONTH) as month, tr_product_pillar_team, SUM(cost) as monthly_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '2025-10-01' GROUP BY month, tr_product_pillar_team), monthly_budget_targets AS (SELECT tr_product_pillar_team, fy_26_budget / 12 as monthly_budget_target, fy26_ytd_spend / GREATEST(DATE_DIFF(CURRENT_DATE(), DATE('2025-10-01'), MONTH), 1) as actual_monthly_avg FROM `{{ project_id }}.{{ dataset }}.budget`), combined_monthly AS (SELECT mc.month, mc.tr_product_pillar_team, mc.monthly_cost, mbt.monthly_budget_target, mbt.actual_monthly_avg FROM monthly_costs mc JOIN monthly_budget_targets mbt ON mc.tr_product_pillar_team = mbt.tr_product_pillar_team) SELECT month, SUM(monthly_cost) as total_monthly_cost, SUM(monthly_budget_target) as total_monthly_budget_target, SUM(monthly_cost) - SUM(monthly_budget_target) as monthly_variance, ROUND((SUM(monthly_cost) / SUM(monthly_budget_target)) * 100, 2) as monthly_efficiency_pct FROM combined_monthly GROUP BY month ORDER BY month",
+        "expected_result_type": "time_series_variance",
+        "visualization_hint": "line_chart",
+        "parameters": {},
+        "tags": ["monthly_trend", "budget_progression", "variance"]
+      }
+    },
+    "performance_metrics": {
+      "budget_accuracy_vs_actual_costs": {
+        "description": "Analyze budget prediction accuracy vs actual costs for FY26",
+        "sql": "WITH team_actuals AS (SELECT tr_product_pillar_team, SUM(cost) as actual_ytd_cost, COUNT(DISTINCT application) as app_count, AVG(cost) as avg_daily_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '2025-10-01' AND date <= CURRENT_DATE() GROUP BY tr_product_pillar_team), team_budget_performance AS (SELECT tr_product_pillar_team, cto, SUM(fy_26_budget) as total_budget, SUM(fy26_ytd_spend) as budgeted_ytd, SUM(fy26_projected_spend) as projected_annual, ROUND(AVG((fy26_ytd_spend / fy_26_budget) * 100), 2) as avg_utilization_pct FROM `{{ project_id }}.{{ dataset }}.budget` GROUP BY tr_product_pillar_team, cto) SELECT tbp.tr_product_pillar_team, tbp.cto, COALESCE(ta.actual_ytd_cost, 0) as actual_ytd_cost, tbp.budgeted_ytd, tbp.total_budget, tbp.projected_annual, COALESCE(ta.app_count, 0) as application_count, ABS(COALESCE(ta.actual_ytd_cost, 0) - tbp.budgeted_ytd) as ytd_variance, CASE WHEN tbp.budgeted_ytd > 0 THEN ROUND(ABS(COALESCE(ta.actual_ytd_cost, 0) - tbp.budgeted_ytd) / tbp.budgeted_ytd * 100, 2) ELSE NULL END as ytd_accuracy_error_pct, CASE WHEN tbp.total_budget > 0 THEN ROUND((COALESCE(ta.actual_ytd_cost, 0) / tbp.total_budget) * 100, 2) ELSE NULL END as cost_to_annual_budget_pct, CASE WHEN ta.app_count > 0 THEN ROUND(COALESCE(ta.actual_ytd_cost, 0) / ta.app_count, 2) ELSE NULL END as cost_per_application FROM team_budget_performance tbp LEFT JOIN team_actuals ta ON tbp.tr_product_pillar_team = ta.tr_product_pillar_team ORDER BY ytd_accuracy_error_pct DESC NULLS LAST",
+        "expected_result_type": "accuracy_metrics",
+        "visualization_hint": "bubble_chart",
+        "parameters": {},
+        "tags": ["accuracy", "prediction", "fy26_performance"]
+      },
+      "cost_efficiency_by_budget_allocation": {
+        "description": "Cost efficiency analysis by budget allocation size categories",
+        "sql": "WITH budget_categories AS (SELECT tr_product_id, tr_product, tr_product_pillar_team, cto, fy_26_budget, fy26_ytd_spend, fy26_projected_spend, CASE WHEN fy_26_budget < 10000 THEN 'Small (<10K)' WHEN fy_26_budget < 50000 THEN 'Medium (10K-50K)' WHEN fy_26_budget < 100000 THEN 'Large (50K-100K)' ELSE 'Enterprise (>100K)' END as budget_category FROM `{{ project_id }}.{{ dataset }}.budget`), category_costs AS (SELECT bc.budget_category, bc.tr_product_pillar_team, SUM(c.cost) as actual_cost FROM budget_categories bc LEFT JOIN `{{ project_id }}.{{ dataset }}.cost_analysis` c ON bc.tr_product_pillar_team = c.tr_product_pillar_team WHERE c.date >= '2025-10-01' AND c.date <= CURRENT_DATE() GROUP BY bc.budget_category, bc.tr_product_pillar_team) SELECT bc.budget_category, COUNT(*) as product_count, SUM(bc.fy_26_budget) as total_budget, SUM(bc.fy26_ytd_spend) as total_budgeted_spend, SUM(COALESCE(cc.actual_cost, 0)) as total_actual_cost, ROUND(AVG((bc.fy26_ytd_spend / bc.fy_26_budget) * 100), 2) as avg_budget_utilization_pct, CASE WHEN SUM(bc.fy26_ytd_spend) > 0 THEN ROUND(SUM(COALESCE(cc.actual_cost, 0)) / SUM(bc.fy26_ytd_spend), 3) ELSE NULL END as cost_efficiency_ratio, SUM(COALESCE(cc.actual_cost, 0)) - SUM(bc.fy26_ytd_spend) as cost_budget_variance FROM budget_categories bc LEFT JOIN category_costs cc ON bc.budget_category = cc.budget_category AND bc.tr_product_pillar_team = cc.tr_product_pillar_team GROUP BY bc.budget_category ORDER BY total_budget DESC",
+        "expected_result_type": "efficiency_analysis",
+        "visualization_hint": "treemap",
+        "parameters": {},
+        "tags": ["efficiency", "budget_categories", "cost_per_dollar"]
+      },
+      "roi_analysis_cost_vs_budget": {
+        "description": "ROI analysis comparing cost efficiency vs budget performance by product",
+        "sql": "WITH product_metrics AS (SELECT b.tr_product_id, b.tr_product, b.tr_product_pillar_team, b.cto, b.fy_26_budget, b.fy26_ytd_spend, b.fy26_projected_spend, COALESCE(SUM(c.cost), 0) as actual_cost, COUNT(DISTINCT c.application) as app_count FROM `{{ project_id }}.{{ dataset }}.budget` b LEFT JOIN `{{ project_id }}.{{ dataset }}.cost_analysis` c ON b.tr_product_pillar_team = c.tr_product_pillar_team AND c.date >= '2025-10-01' AND c.date <= CURRENT_DATE() GROUP BY b.tr_product_id, b.tr_product, b.tr_product_pillar_team, b.cto, b.fy_26_budget, b.fy26_ytd_spend, b.fy26_projected_spend) SELECT tr_product_id, tr_product, tr_product_pillar_team, cto, fy_26_budget, fy26_ytd_spend, fy26_projected_spend, actual_cost, app_count, CASE WHEN fy_26_budget > 0 THEN ROUND((actual_cost / fy_26_budget) * 100, 3) ELSE NULL END as cost_to_budget_efficiency_pct, CASE WHEN fy26_ytd_spend > 0 THEN ROUND(actual_cost / fy26_ytd_spend, 3) ELSE NULL END as cost_per_budget_dollar, CASE WHEN app_count > 0 THEN ROUND(actual_cost / app_count, 2) ELSE NULL END as cost_per_application, ROUND((fy26_projected_spend / fy_26_budget) * 100, 2) as projected_budget_utilization_pct, actual_cost - fy26_ytd_spend as cost_budget_variance, CASE WHEN fy26_projected_spend > fy_26_budget AND actual_cost > fy26_ytd_spend THEN 'HIGH_RISK' WHEN fy26_projected_spend > fy_26_budget OR actual_cost > fy26_ytd_spend * 1.2 THEN 'MONITOR' WHEN actual_cost < fy26_ytd_spend * 0.8 THEN 'EFFICIENT' ELSE 'NORMAL' END as performance_category FROM product_metrics WHERE fy_26_budget > {{ min_budget_threshold }} ORDER BY cost_to_budget_efficiency_pct DESC NULLS LAST",
+        "expected_result_type": "roi_analysis",
+        "visualization_hint": "scatter_plot",
+        "parameters": {
+          "min_budget_threshold": 5000
+        },
+        "tags": ["roi", "cost_efficiency", "performance_category"]
+      }
+    },
+    "forecasting_queries": {
+      "fy26_cost_vs_budget_forecast": {
+        "description": "Forecast remaining FY26 costs vs budget based on current trends",
+        "sql": "WITH ytd_performance AS (SELECT tr_product_pillar_team, SUM(cost) as ytd_actual_cost, COUNT(DISTINCT date) as active_days FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '2025-10-01' AND date <= CURRENT_DATE() GROUP BY tr_product_pillar_team), budget_projections AS (SELECT tr_product_pillar_team, cto, SUM(fy_26_budget) as total_budget, SUM(fy26_ytd_spend) as budgeted_ytd, SUM(fy26_projected_spend) as budget_projected FROM `{{ project_id }}.{{ dataset }}.budget` GROUP BY tr_product_pillar_team, cto), forecast_analysis AS (SELECT bp.tr_product_pillar_team, bp.cto, bp.total_budget, bp.budgeted_ytd, bp.budget_projected, COALESCE(yp.ytd_actual_cost, 0) as ytd_actual_cost, COALESCE(yp.active_days, 0) as active_days, CASE WHEN yp.active_days > 0 THEN ROUND(yp.ytd_actual_cost / yp.active_days, 2) ELSE 0 END as avg_daily_cost, ROUND((COALESCE(yp.ytd_actual_cost, 0) / GREATEST(yp.active_days, 1)) * 365, 2) as projected_annual_cost FROM budget_projections bp LEFT JOIN ytd_performance yp ON bp.tr_product_pillar_team = yp.tr_product_pillar_team) SELECT tr_product_pillar_team, cto, total_budget, budgeted_ytd, budget_projected, ytd_actual_cost, projected_annual_cost, avg_daily_cost, projected_annual_cost - total_budget as cost_budget_variance, budget_projected - total_budget as budget_variance, ROUND((projected_annual_cost / total_budget) * 100, 2) as cost_utilization_pct, ROUND((budget_projected / total_budget) * 100, 2) as budget_utilization_pct, CASE WHEN projected_annual_cost > total_budget * 1.1 AND budget_projected > total_budget * 1.1 THEN 'CRITICAL_RISK' WHEN projected_annual_cost > total_budget OR budget_projected > total_budget THEN 'OVERSPEND_RISK' WHEN projected_annual_cost < total_budget * 0.8 AND budget_projected < total_budget * 0.8 THEN 'UNDER_UTILIZED' ELSE 'ON_TRACK' END as forecast_status FROM forecast_analysis WHERE total_budget > 0 ORDER BY cost_budget_variance DESC",
+        "expected_result_type": "forecast_comparison",
+        "visualization_hint": "line_chart",
+        "parameters": {},
+        "tags": ["forecast", "fy26", "cost_vs_budget"]
+      },
+      "fy27_budget_recommendations_with_cost_data": {
+        "description": "FY27 budget recommendations based on actual cost trends and FY26 budget performance",
+        "sql": "WITH cost_trends AS (SELECT tr_product_pillar_team, SUM(cost) as ytd_cost, COUNT(DISTINCT date) as active_days, ROUND(SUM(cost) / COUNT(DISTINCT date), 2) as avg_daily_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '2025-10-01' AND date <= CURRENT_DATE() GROUP BY tr_product_pillar_team), budget_performance AS (SELECT tr_product_pillar_team, cto, SUM(fy_26_budget) as fy26_budget, SUM(fy26_ytd_spend) as fy26_ytd_spend, SUM(fy26_projected_spend) as fy26_projected FROM `{{ project_id }}.{{ dataset }}.budget` GROUP BY tr_product_pillar_team, cto), recommendations AS (SELECT bp.tr_product_pillar_team, bp.cto, bp.fy26_budget, bp.fy26_ytd_spend, bp.fy26_projected, COALESCE(ct.ytd_cost, 0) as actual_ytd_cost, COALESCE(ct.avg_daily_cost, 0) as avg_daily_cost, ROUND(COALESCE(ct.avg_daily_cost, 0) * 365, 2) as projected_annual_cost_trend, GREATEST(bp.fy26_projected, ROUND(COALESCE(ct.avg_daily_cost, 0) * 365, 2)) as conservative_fy27_base, ROUND(GREATEST(bp.fy26_projected, ROUND(COALESCE(ct.avg_daily_cost, 0) * 365, 2)) * 1.1, 2) as recommended_fy27_conservative, ROUND(GREATEST(bp.fy26_projected, ROUND(COALESCE(ct.avg_daily_cost, 0) * 365, 2)) * 1.2, 2) as recommended_fy27_growth FROM budget_performance bp LEFT JOIN cost_trends ct ON bp.tr_product_pillar_team = ct.tr_product_pillar_team) SELECT tr_product_pillar_team, cto, fy26_budget, fy26_projected, actual_ytd_cost, projected_annual_cost_trend, conservative_fy27_base, recommended_fy27_conservative, recommended_fy27_growth, recommended_fy27_conservative - fy26_budget as conservative_increase, recommended_fy27_growth - fy26_budget as growth_increase, CASE WHEN projected_annual_cost_trend > fy26_projected * 1.2 THEN 'SIGNIFICANT_INCREASE' WHEN projected_annual_cost_trend > fy26_projected * 1.1 THEN 'MODERATE_INCREASE' WHEN projected_annual_cost_trend < fy26_projected * 0.9 THEN 'DECREASE_POSSIBLE' ELSE 'MAINTAIN_LEVEL' END as fy27_recommendation FROM recommendations WHERE fy26_budget > 0 ORDER BY conservative_increase DESC",
+        "expected_result_type": "planning_recommendation",
+        "visualization_hint": "scatter_plot",
+        "parameters": {},
+        "tags": ["fy27_planning", "cost_trends", "budget_recommendations"]
+      },
+      "seasonal_cost_vs_budget_patterns": {
+        "description": "Analyze seasonal patterns in cost vs budget performance for planning",
+        "sql": "WITH monthly_patterns AS (SELECT EXTRACT(MONTH FROM date) as month, tr_product_pillar_team, SUM(cost) as monthly_cost, COUNT(DISTINCT application) as app_count FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '2025-10-01' GROUP BY month, tr_product_pillar_team), budget_monthly_targets AS (SELECT tr_product_pillar_team, cto, fy_26_budget / 12 as monthly_budget_target, fy26_ytd_spend / GREATEST(DATE_DIFF(CURRENT_DATE(), DATE('2025-10-01'), MONTH), 1) as actual_monthly_avg_spend FROM `{{ project_id }}.{{ dataset }}.budget`), seasonal_analysis AS (SELECT mp.month, mp.tr_product_pillar_team, bmt.cto, mp.monthly_cost, bmt.monthly_budget_target, bmt.actual_monthly_avg_spend, mp.monthly_cost - bmt.monthly_budget_target as cost_budget_variance, mp.monthly_cost - bmt.actual_monthly_avg_spend as cost_vs_actual_variance FROM monthly_patterns mp JOIN budget_monthly_targets bmt ON mp.tr_product_pillar_team = bmt.tr_product_pillar_team) SELECT month, COUNT(DISTINCT tr_product_pillar_team) as teams_active, SUM(monthly_cost) as total_monthly_cost, SUM(monthly_budget_target) as total_monthly_budget_target, SUM(monthly_cost) - SUM(monthly_budget_target) as monthly_variance, ROUND(AVG(cost_budget_variance), 2) as avg_team_variance, ROUND(STDDEV(cost_budget_variance), 2) as variance_volatility, ROUND((SUM(monthly_cost) / SUM(monthly_budget_target)) * 100, 2) as monthly_efficiency_pct FROM seasonal_analysis GROUP BY month ORDER BY month",
+        "expected_result_type": "seasonal_analysis",
+        "visualization_hint": "radar_chart",
+        "parameters": {},
+        "tags": ["seasonal", "patterns", "monthly_analysis"]
+      }
+    },
+    "variance_reporting": {
+      "comprehensive_cost_budget_variance": {
+        "description": "Comprehensive variance report combining actual costs and budget performance",
+        "sql": "WITH cost_summary AS (SELECT tr_product_pillar_team, SUM(cost) as total_actual_cost, COUNT(DISTINCT application) as app_count, COUNT(DISTINCT date) as active_days FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '2025-10-01' AND date <= CURRENT_DATE() GROUP BY tr_product_pillar_team), budget_summary AS (SELECT tr_product_pillar_team, cto, SUM(fy_26_budget) as total_budget, SUM(fy26_ytd_spend) as total_ytd_spend, SUM(fy26_projected_spend) as total_projected_spend FROM `{{ project_id }}.{{ dataset }}.budget` GROUP BY tr_product_pillar_team, cto), variance_analysis AS (SELECT COALESCE(cs.tr_product_pillar_team, bs.tr_product_pillar_team) as team, bs.cto, COALESCE(cs.total_actual_cost, 0) as actual_cost, COALESCE(cs.app_count, 0) as application_count, COALESCE(cs.active_days, 0) as cost_active_days, COALESCE(bs.total_budget, 0) as allocated_budget, COALESCE(bs.total_ytd_spend, 0) as budgeted_ytd_spend, COALESCE(bs.total_projected_spend, 0) as budget_projected_spend, COALESCE(cs.total_actual_cost, 0) - COALESCE(bs.total_ytd_spend, 0) as cost_vs_budget_variance, COALESCE(bs.total_projected_spend, 0) - COALESCE(bs.total_budget, 0) as budget_internal_variance, CASE WHEN bs.total_budget > 0 THEN ROUND((COALESCE(cs.total_actual_cost, 0) / bs.total_budget) * 100, 2) ELSE NULL END as cost_to_annual_budget_pct, CASE WHEN bs.total_ytd_spend > 0 THEN ROUND((COALESCE(cs.total_actual_cost, 0) / bs.total_ytd_spend) * 100, 2) ELSE NULL END as cost_efficiency_pct, CASE WHEN bs.total_budget > 0 THEN ROUND((bs.total_projected_spend / bs.total_budget) * 100, 2) ELSE NULL END as budget_utilization_pct FROM cost_summary cs FULL OUTER JOIN budget_summary bs ON cs.tr_product_pillar_team = bs.tr_product_pillar_team), categorized_variance AS (SELECT team, cto, actual_cost, allocated_budget, budgeted_ytd_spend, budget_projected_spend, cost_vs_budget_variance, budget_internal_variance, cost_to_annual_budget_pct, cost_efficiency_pct, budget_utilization_pct, application_count, CASE WHEN cost_vs_budget_variance > allocated_budget * 0.1 AND budget_internal_variance > allocated_budget * 0.1 THEN 'CRITICAL_BOTH' WHEN cost_vs_budget_variance > allocated_budget * 0.1 THEN 'COST_OVERSPEND' WHEN budget_internal_variance > allocated_budget * 0.1 THEN 'BUDGET_OVERSPEND' WHEN cost_vs_budget_variance < -(allocated_budget * 0.1) THEN 'COST_UNDER' ELSE 'NORMAL' END as variance_category FROM variance_analysis) SELECT team, cto, actual_cost, allocated_budget, budgeted_ytd_spend, budget_projected_spend, cost_vs_budget_variance, budget_internal_variance, cost_to_annual_budget_pct, cost_efficiency_pct, budget_utilization_pct, application_count, variance_category FROM categorized_variance ORDER BY ABS(cost_vs_budget_variance) DESC",
+        "expected_result_type": "comprehensive_variance",
+        "visualization_hint": "heatmap",
+        "parameters": {},
+        "tags": ["variance", "comprehensive", "cost_budget_analysis"]
+      },
+      "critical_variance_alerts": {
+        "description": "Critical cost vs budget variances requiring immediate attention",
+        "sql": "WITH current_performance AS (SELECT tr_product_pillar_team, SUM(cost) as ytd_actual_cost, COUNT(DISTINCT application) as app_count FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '2025-10-01' AND date <= CURRENT_DATE() GROUP BY tr_product_pillar_team), budget_status AS (SELECT tr_product_pillar_team, cto, SUM(fy_26_budget) as allocated_budget, SUM(fy26_ytd_spend) as ytd_budget_spend, SUM(fy26_projected_spend) as projected_spend FROM `{{ project_id }}.{{ dataset }}.budget` GROUP BY tr_product_pillar_team, cto), variance_alerts AS (SELECT COALESCE(cp.tr_product_pillar_team, bs.tr_product_pillar_team) as team, bs.cto, COALESCE(cp.ytd_actual_cost, 0) as actual_cost, COALESCE(cp.app_count, 0) as application_count, COALESCE(bs.allocated_budget, 0) as allocated_budget, COALESCE(bs.ytd_budget_spend, 0) as budget_ytd_spend, COALESCE(bs.projected_spend, 0) as projected_spend, COALESCE(cp.ytd_actual_cost, 0) - COALESCE(bs.ytd_budget_spend, 0) as cost_budget_variance, COALESCE(bs.projected_spend, 0) - COALESCE(bs.allocated_budget, 0) as budget_variance, CASE WHEN bs.allocated_budget > 0 THEN ABS(COALESCE(cp.ytd_actual_cost, 0) - COALESCE(bs.ytd_budget_spend, 0)) / bs.allocated_budget * 100 ELSE 0 END as cost_variance_pct, CASE WHEN bs.allocated_budget > 0 THEN ABS(COALESCE(bs.projected_spend, 0) - COALESCE(bs.allocated_budget, 0)) / bs.allocated_budget * 100 ELSE 0 END as budget_variance_pct FROM current_performance cp FULL OUTER JOIN budget_status bs ON cp.tr_product_pillar_team = bs.tr_product_pillar_team), alert_classification AS (SELECT team, cto, actual_cost, allocated_budget, budget_ytd_spend, projected_spend, cost_budget_variance, budget_variance, cost_variance_pct, budget_variance_pct, application_count, CASE WHEN cost_variance_pct > {{ critical_variance_threshold }} AND budget_variance_pct > {{ critical_variance_threshold }} THEN 'CRITICAL_BOTH' WHEN cost_variance_pct > {{ critical_variance_threshold }} THEN 'CRITICAL_COST' WHEN budget_variance_pct > {{ critical_variance_threshold }} THEN 'CRITICAL_BUDGET' WHEN cost_variance_pct > {{ warning_variance_threshold }} OR budget_variance_pct > {{ warning_variance_threshold }} THEN 'WARNING' ELSE 'NORMAL' END as alert_level, CASE WHEN cost_budget_variance > 0 AND budget_variance > 0 THEN 'Both cost and budget over - immediate review needed' WHEN cost_budget_variance > allocated_budget * 0.1 THEN 'Actual costs significantly exceed budget spend' WHEN budget_variance > allocated_budget * 0.1 THEN 'Budget projections exceed allocation' WHEN cost_budget_variance < -(allocated_budget * 0.1) THEN 'Actual costs significantly under budget - check allocation' ELSE 'Monitor for trends' END as recommendation FROM variance_alerts WHERE allocated_budget > 0) SELECT team, cto, actual_cost, allocated_budget, budget_ytd_spend, projected_spend, cost_budget_variance, budget_variance, cost_variance_pct, budget_variance_pct, application_count, alert_level, recommendation FROM alert_classification WHERE alert_level IN ('CRITICAL_BOTH', 'CRITICAL_COST', 'CRITICAL_BUDGET', 'WARNING') ORDER BY CASE alert_level WHEN 'CRITICAL_BOTH' THEN 1 WHEN 'CRITICAL_COST' THEN 2 WHEN 'CRITICAL_BUDGET' THEN 3 WHEN 'WARNING' THEN 4 END, cost_variance_pct DESC",
+        "expected_result_type": "alert_analysis",
+        "visualization_hint": "table",
+        "parameters": {
+          "critical_variance_threshold": 20,
+          "warning_variance_threshold": 10
+        },
+        "tags": ["alerts", "critical", "variance", "cost_budget"]
+      }
+    },
+    "financial_reporting": {
+      "executive_cost_budget_dashboard": {
+        "description": "Executive dashboard combining cost actuals and budget performance for FY26",
+        "sql": "WITH overall_costs AS (SELECT SUM(cost) as total_ytd_cost, COUNT(DISTINCT application) as total_applications, COUNT(DISTINCT tr_product_pillar_team) as active_teams FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '2025-10-01' AND date <= CURRENT_DATE()), overall_budgets AS (SELECT COUNT(*) as total_products, SUM(fy_26_budget) as total_allocated_budget, SUM(fy26_ytd_spend) as total_ytd_budget_spend, SUM(fy26_projected_spend) as total_projected_spend, COUNT(CASE WHEN fy26_projected_spend > fy_26_budget THEN 1 END) as products_over_budget, COUNT(CASE WHEN (fy26_ytd_spend / fy_26_budget) > 0.9 THEN 1 END) as high_utilization_products FROM `{{ project_id }}.{{ dataset }}.budget`), cost_trend AS (SELECT CASE WHEN DATE_DIFF(CURRENT_DATE(), DATE('2025-10-01'), DAY) >= 30 THEN (SUM(CASE WHEN date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) THEN cost ELSE 0 END) / SUM(CASE WHEN date >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY) AND date < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) THEN cost ELSE 0 END) - 1) * 100 ELSE NULL END as cost_trend_pct FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '2025-10-01'), executive_summary AS (SELECT oc.total_ytd_cost, oc.total_applications, oc.active_teams, ob.total_products, ob.total_allocated_budget, ob.total_ytd_budget_spend, ob.total_projected_spend, ob.products_over_budget, ob.high_utilization_products, ct.cost_trend_pct, oc.total_ytd_cost - ob.total_ytd_budget_spend as cost_vs_budget_variance, CASE WHEN ob.total_allocated_budget > 0 THEN ROUND((oc.total_ytd_cost / ob.total_allocated_budget) * 100, 2) ELSE NULL END as cost_to_annual_budget_pct, CASE WHEN ob.total_ytd_budget_spend > 0 THEN ROUND((oc.total_ytd_cost / ob.total_ytd_budget_spend) * 100, 2) ELSE NULL END as cost_efficiency_pct, CASE WHEN ob.total_allocated_budget > 0 THEN ROUND((ob.total_projected_spend / ob.total_allocated_budget) * 100, 2) ELSE NULL END as projected_budget_utilization_pct, ROUND((ob.total_projected_spend - ob.total_allocated_budget) / ob.total_allocated_budget * 100, 2) as budget_variance_pct FROM overall_costs oc CROSS JOIN overall_budgets ob CROSS JOIN cost_trend ct) SELECT total_ytd_cost, total_applications, active_teams, total_products, total_allocated_budget, total_ytd_budget_spend, total_projected_spend, cost_vs_budget_variance, cost_to_annual_budget_pct, cost_efficiency_pct, projected_budget_utilization_pct, budget_variance_pct, products_over_budget, high_utilization_products, cost_trend_pct, CASE WHEN ABS(cost_vs_budget_variance) > total_allocated_budget * 0.1 THEN 'HIGH_VARIANCE' WHEN projected_budget_utilization_pct > 110 THEN 'BUDGET_RISK' WHEN cost_efficiency_pct < 80 OR cost_efficiency_pct > 120 THEN 'EFFICIENCY_CONCERN' ELSE 'ON_TRACK' END as overall_status FROM executive_summary",
+        "expected_result_type": "executive_summary",
+        "visualization_hint": "dashboard",
+        "parameters": {},
+        "tags": ["executive", "dashboard", "fy26_summary"]
+      },
+      "quarterly_cost_budget_review": {
+        "description": "Quarterly review combining cost trends and budget performance",
+        "sql": "WITH quarterly_costs AS (SELECT EXTRACT(QUARTER FROM date) as quarter, EXTRACT(YEAR FROM date) as year, tr_product_pillar_team, SUM(cost) as quarterly_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '2025-01-01' GROUP BY quarter, year, tr_product_pillar_team), quarterly_budget_targets AS (SELECT tr_product_pillar_team, cto, fy_26_budget / 4 as quarterly_budget_target, fy26_ytd_spend / GREATEST(EXTRACT(QUARTER FROM CURRENT_DATE()), 1) as actual_quarterly_avg_spend FROM `{{ project_id }}.{{ dataset }}.budget`), current_quarter_comparison AS (SELECT qc.quarter, qc.year, qc.tr_product_pillar_team, qbt.cto, qc.quarterly_cost, qbt.quarterly_budget_target, qbt.actual_quarterly_avg_spend, qc.quarterly_cost - qbt.quarterly_budget_target as cost_budget_variance, qc.quarterly_cost - qbt.actual_quarterly_avg_spend as cost_vs_actual_variance, LAG(qc.quarterly_cost) OVER (PARTITION BY qc.tr_product_pillar_team ORDER BY qc.year, qc.quarter) as prior_quarter_cost FROM quarterly_costs qc JOIN quarterly_budget_targets qbt ON qc.tr_product_pillar_team = qbt.tr_product_pillar_team WHERE qc.year >= 2025), quarterly_summary AS (SELECT quarter, year, COUNT(DISTINCT tr_product_pillar_team) as teams_active, SUM(quarterly_cost) as total_quarterly_cost, SUM(quarterly_budget_target) as total_quarterly_budget, SUM(quarterly_cost) - SUM(quarterly_budget_target) as total_variance, ROUND(AVG(cost_budget_variance), 2) as avg_team_variance, ROUND((SUM(quarterly_cost) / SUM(quarterly_budget_target)) * 100, 2) as quarterly_efficiency_pct, COUNT(CASE WHEN cost_budget_variance > quarterly_budget_target * 0.1 THEN 1 END) as teams_over_budget FROM current_quarter_comparison GROUP BY quarter, year) SELECT quarter, year, teams_active, total_quarterly_cost, total_quarterly_budget, total_variance, avg_team_variance, quarterly_efficiency_pct, teams_over_budget, CASE WHEN ABS(total_variance) > total_quarterly_budget * 0.1 THEN 'HIGH_VARIANCE' WHEN quarterly_efficiency_pct > 110 THEN 'OVER_BUDGET' WHEN quarterly_efficiency_pct < 90 THEN 'UNDER_BUDGET' ELSE 'ON_TARGET' END as quarterly_status FROM quarterly_summary ORDER BY year, quarter",
+        "expected_result_type": "quarterly_review",
+        "visualization_hint": "line_chart",
+        "parameters": {},
+        "tags": ["quarterly", "cost_budget_review", "trends"]
+      }
+    }
+  },
+  "query_templates": {
+    "cost_budget_comparison": {
+      "description": "Template for comparing actual costs vs fiscal year budgets across any dimension",
+      "sql_template": "WITH cost_data AS (SELECT {{ cost_grouping }}, SUM(cost) as actual_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE {{ cost_filters }} GROUP BY {{ cost_grouping }}), budget_data AS (SELECT {{ budget_grouping }}, SUM({{ budget_metric }}) as budget_amount FROM `{{ project_id }}.{{ dataset }}.budget` WHERE {{ budget_filters }} GROUP BY {{ budget_grouping }}) SELECT COALESCE(c.{{ cost_grouping }}, b.{{ budget_grouping }}) as dimension, COALESCE(c.actual_cost, 0) as actual_cost, COALESCE(b.budget_amount, 0) as budget_amount, COALESCE(c.actual_cost, 0) - COALESCE(b.budget_amount, 0) as variance FROM cost_data c FULL OUTER JOIN budget_data b ON c.{{ cost_grouping }} = b.{{ budget_grouping }} ORDER BY ABS(COALESCE(c.actual_cost, 0) - COALESCE(b.budget_amount, 0)) DESC",
+      "required_parameters": ["cost_grouping", "budget_grouping", "budget_metric"],
+      "optional_parameters": {
+        "cost_filters": "date >= '2025-10-01' AND date <= CURRENT_DATE()",
+        "budget_filters": "fy_26_budget > 0"
+      }
+    },
+    "fiscal_year_performance": {
+      "description": "Template for analyzing fiscal year performance across cost and budget dimensions",
+      "sql_template": "WITH fy_costs AS (SELECT {{ grouping_field }}, SUM(cost) as fy_actual_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= '{{ fy_start_date }}' AND date <= CURRENT_DATE() GROUP BY {{ grouping_field }}), fy_budgets AS (SELECT {{ grouping_field }}, SUM(fy_{{ fiscal_year }}_budget) as fy_budget, SUM(fy{{ fiscal_year }}_ytd_spend) as fy_ytd_spend, SUM(fy{{ fiscal_year }}_projected_spend) as fy_projected FROM `{{ project_id }}.{{ dataset }}.budget` GROUP BY {{ grouping_field }}) SELECT COALESCE(fc.{{ grouping_field }}, fb.{{ grouping_field }}) as dimension, COALESCE(fc.fy_actual_cost, 0) as actual_cost, COALESCE(fb.fy_budget, 0) as allocated_budget, COALESCE(fb.fy_ytd_spend, 0) as budgeted_spend, COALESCE(fb.fy_projected, 0) as projected_spend, COALESCE(fc.fy_actual_cost, 0) - COALESCE(fb.fy_ytd_spend, 0) as cost_variance FROM fy_costs fc FULL OUTER JOIN fy_budgets fb ON fc.{{ grouping_field }} = fb.{{ grouping_field }} ORDER BY cost_variance DESC",
+      "required_parameters": ["grouping_field", "fiscal_year", "fy_start_date"],
+      "optional_parameters": {}
+    }
+  },
+  "common_patterns": {
+    "team_mapping": [
+      "Cost analysis and budget tables both use tr_product_pillar_team for joining",
+      "Budget table includes cto field for organizational hierarchy",
+      "tr_subpillar_name provides sub-team granularity"
+    ],
+    "fiscal_year_calculations": [
+      "(fy26_ytd_spend / fy_26_budget) * 100 as ytd_budget_utilization_pct",
+      "(fy26_projected_spend / fy_26_budget) * 100 as projected_budget_utilization_pct",
+      "actual_cost - fy26_ytd_spend as cost_budget_variance",
+      "fy26_projected_spend - fy_26_budget as budget_variance"
+    ],
+    "variance_calculations": [
+      "actual_cost - budget_amount as variance",
+      "ABS(actual_cost - budget_amount) as absolute_variance",
+      "(actual_cost - budget_amount) / NULLIF(budget_amount, 0) * 100 as variance_pct"
+    ],
+    "efficiency_metrics": [
+      "actual_cost / budget_amount as cost_efficiency_ratio",
+      "(actual_cost / budget_amount) * 100 as cost_to_budget_pct",
+      "budget_amount / actual_cost as budget_coverage_ratio"
+    ],
+    "time_period_filters": [
+      "WHERE date >= '2025-10-01' AND date <= CURRENT_DATE()  -- FY26 YTD",
+      "WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)  -- Last 90 days",
+      "WHERE EXTRACT(QUARTER FROM date) = EXTRACT(QUARTER FROM CURRENT_DATE())  -- Current quarter"
+    ],
+    "budget_status_filters": [
+      "WHERE fy_26_budget > 0  -- Products with FY26 budget",
+      "WHERE fy26_projected_spend > fy_26_budget  -- Over budget projection",
+      "WHERE (fy26_ytd_spend / fy_26_budget) > 0.8  -- High utilization"
+    ]
+  },
+  "business_insights": {
+    "key_metrics": [
+      "Cost vs Budget Variance (Actual - Budgeted)",
+      "Budget Utilization Rate (YTD Spend / Allocated)",
+      "Cost Efficiency Ratio (Actual Cost / Budget Dollar)",
+      "Projection Accuracy (Projected vs Actual Trends)",
+      "Fiscal Year Performance (Multi-year Growth)"
+    ],
+    "alert_conditions": [
+      "Cost Variance > 20% (Critical)",
+      "Budget Variance > 20% (Critical)",
+      "Combined Variance > 15% (Warning)",
+      "Cost Efficiency < 80% or > 120% (Efficiency Alert)",
+      "Projected Annual Overspend > 10%"
+    ],
+    "reporting_frequencies": [
+      "Daily: Cost tracking vs budget burn",
+      "Weekly: Variance monitoring",
+      "Monthly: Efficiency analysis",
+      "Quarterly: Performance review vs budget",
+      "Annual: FY planning and trend analysis"
+    ],
+    "sample_data_context": {
+      "example_scenarios": [
+        "Health/ENTERPRISE FINANCE TECH with delivery as service (Product ID 736)",
+        "FY budgets: $15,000 each year (24, 25, 26)",
+        "FY26 performance: $4,500 YTD, $18,000 projected (20% over budget)",
+        "Cost efficiency analysis by product team and CTO organization"
+      ]
+    }
+  }
+}

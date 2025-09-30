@@ -1,0 +1,27 @@
+{
+  "servers": {
+    "memory": {
+      "command": "mcp-server-memory",
+      "args": [],
+      "env": {}
+    },
+    "magic": {
+      "command": "npx",
+      "args": ["-y", "@kevinmichaelchen/mcp-server-magic"],
+      "env": {},
+      "description": "Magic UI design system integration for enhanced interface components"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@cloudflare/mcp-server-playwright"],
+      "env": {},
+      "description": "Browser automation for testing and UI interactions"
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/gurukallam/projects/ADK-Agents"],
+      "env": {},
+      "description": "File system operations for project files"
+    }
+  }
+}

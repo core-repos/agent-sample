@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./genai-agents-backend
+      dockerfile: Dockerfile
+    container_name: adk-backend
+    ports:
+      - "8010:8010"  # Changed from 8000 to 8010
+    environment:
+      - PORT=8010
+      - HOST=0.0.0.0
+      - GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud/application_default_credentials.json
+    env_file:
+      - .env
+    volumes:
+      - ./genai-agents-backend/logs:/app/logs
+      - ./genai-agents-backend/cache:/app/cache
+      - ~/.config/gcloud/application_default_credentials.json:/tmp/gcloud/application_default_credentials.json:ro
+    networks:
+      - adk-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./gradio-chatbot
+      dockerfile: Dockerfile
+    container_name: adk-frontend
+    ports:
+      - "7860:80"  # Map host 7860 to container 80 (nginx proxies to internal 7860)
+    environment:
+      - API_BASE_URL=http://backend:8010  # Updated to use port 8010
+      - GRADIO_SERVER_NAME=0.0.0.0
+      - GRADIO_SERVER_PORT=7860
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - adk-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  adk-network:
+    driver: bridge
+    name: adk-network
+
+volumes:
+  logs:
+    name: adk-logs
+  cache:
+    name: adk-cache

@@ -1,0 +1,117 @@
+# BigQuery Specialist Agent
+# Expert in SQL optimization, BigQuery best practices, and data modeling
+
+name: bigquery-specialist
+description: "Specializes in BigQuery operations, SQL optimization, and data analytics"
+version: "1.0"
+
+capabilities:
+  - SQL query optimization
+  - BigQuery schema design
+  - Cost optimization strategies
+  - Performance tuning
+  - Data modeling
+  - LangChain SQL agent configuration
+
+tools:
+  - Read
+  - Edit
+  - Write
+  - MultiEdit
+  - Grep
+  - Glob
+  - Bash
+  - WebSearch
+
+activation_triggers:
+  keywords:
+    - bigquery
+    - sql
+    - query
+    - optimization
+    - langchain
+    - dataset
+    - table
+    - schema
+    - cost analysis
+    
+  patterns:
+    - ".*bigquery.*"
+    - ".*sql.*agent.*"
+    - "optimize.*query"
+    - "improve.*performance"
+    - "reduce.*cost"
+
+specialized_knowledge:
+  bigquery_best_practices:
+    - Use partitioning and clustering
+    - Avoid SELECT *
+    - Use approximate aggregation functions
+    - Leverage materialized views
+    - Optimize JOIN operations
+    
+  langchain_integration:
+    - SQL agent configuration
+    - Tool selection strategies
+    - Prompt engineering for SQL
+    - Error handling patterns
+    
+  project_specific:
+    project_id: "gac-prod-471220"
+    dataset: "agent_bq_dataset"
+    table: "cost_analysis"
+    model: "claude-3-sonnet-20240229"
+
+workflows:
+  optimize_query:
+    steps:
+      1. Analyze current query
+      2. Identify bottlenecks
+      3. Apply optimization techniques
+      4. Test performance
+      5. Document improvements
+      
+  setup_agent:
+    steps:
+      1. Configure BigQuery connection
+      2. Set up LangChain SQL agent
+      3. Define tool permissions
+      4. Create example queries
+      5. Test end-to-end flow
+
+error_handling:
+  common_errors:
+    - permission_denied: "Check service account permissions"
+    - quota_exceeded: "Implement caching strategy"
+    - syntax_error: "Validate SQL syntax"
+    - timeout: "Optimize query or increase timeout"
+
+templates:
+  optimized_query: |
+    SELECT 
+      {columns}
+    FROM 
+      `{project}.{dataset}.{table}`
+    WHERE 
+      {conditions}
+      AND _PARTITIONTIME >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL {days} DAY)
+    GROUP BY 
+      {group_by}
+    ORDER BY 
+      {order_by}
+    LIMIT {limit}
+    
+  langchain_config: |
+    agent = create_sql_agent(
+        llm=ChatAnthropic(
+            model="{model}",
+            temperature={temperature}
+        ),
+        toolkit=SQLDatabaseToolkit(
+            db=db,
+            llm=llm
+        ),
+        agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+        verbose=True,
+        handle_parsing_errors=True
+    )

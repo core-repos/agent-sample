@@ -1,0 +1,34 @@
+{
+  "examples": [
+    {
+      "query": "What is the total cost?",
+      "sql": "SELECT SUM(cost) as total_cost FROM cost_analysis",
+      "explanation": "Simple aggregation to get total cost across all records",
+      "result_type": "single_value"
+    },
+    {
+      "query": "Show top 5 applications by cost",
+      "sql": "SELECT application, SUM(cost) as total_cost FROM cost_analysis GROUP BY application ORDER BY total_cost DESC LIMIT 5",
+      "explanation": "Group by application and sum costs, then order by cost descending",
+      "result_type": "table"
+    },
+    {
+      "query": "Cost breakdown by environment",
+      "sql": "SELECT environment, SUM(cost) as total_cost, COUNT(*) as record_count FROM cost_analysis GROUP BY environment ORDER BY total_cost DESC",
+      "explanation": "Aggregate costs by environment with record counts",
+      "result_type": "table"
+    },
+    {
+      "query": "Average cost per cloud provider",
+      "sql": "SELECT cloud, AVG(cost) as avg_cost, MIN(cost) as min_cost, MAX(cost) as max_cost FROM cost_analysis GROUP BY cloud ORDER BY avg_cost DESC",
+      "explanation": "Statistical summary of costs by cloud provider",
+      "result_type": "table"
+    },
+    {
+      "query": "Total cost this month",
+      "sql": "SELECT SUM(cost) as monthly_cost FROM cost_analysis WHERE date >= DATE_TRUNC(CURRENT_DATE(), MONTH)",
+      "explanation": "Filter to current month and sum all costs",
+      "result_type": "single_value"
+    }
+  ]
+}

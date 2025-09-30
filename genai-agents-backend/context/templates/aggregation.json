@@ -1,0 +1,44 @@
+{
+  "templates": {
+    "total_cost": {
+      "name": "total_cost",
+      "description": "Calculate total cost with optional filters",
+      "category": "aggregation",
+      "template": "SELECT SUM({{ cost_column }}) as total_cost FROM {{ table_name }} {% if date_filter %}WHERE date >= '{{ date_filter }}'{% endif %} {% if additional_filters %}AND {{ additional_filters }}{% endif %}",
+      "parameters": [
+        "cost_column",
+        "table_name",
+        "date_filter",
+        "additional_filters"
+      ],
+      "example": "SELECT SUM(cost) as total_cost FROM cost_analysis WHERE date >= '2024-01-01'"
+    },
+    "cost_by_dimension": {
+      "name": "cost_by_dimension",
+      "description": "Aggregate cost by specific dimensions",
+      "category": "aggregation",
+      "template": "SELECT {{ group_columns }}, SUM({{ cost_column }}) as total_cost, COUNT(*) as record_count FROM {{ table_name }} {% if filters %}WHERE {{ filters }}{% endif %} GROUP BY {{ group_columns }} ORDER BY total_cost DESC {% if limit %}LIMIT {{ limit }}{% endif %}",
+      "parameters": [
+        "group_columns",
+        "cost_column",
+        "table_name",
+        "filters",
+        "limit"
+      ],
+      "example": "SELECT application, environment, SUM(cost) as total_cost FROM cost_analysis GROUP BY application, environment ORDER BY total_cost DESC LIMIT 10"
+    },
+    "average_cost": {
+      "name": "average_cost",
+      "description": "Calculate average cost metrics",
+      "category": "aggregation",
+      "template": "SELECT {{ group_columns }}, AVG({{ cost_column }}) as avg_cost, MIN({{ cost_column }}) as min_cost, MAX({{ cost_column }}) as max_cost FROM {{ table_name }} {% if filters %}WHERE {{ filters }}{% endif %} GROUP BY {{ group_columns }} ORDER BY avg_cost DESC",
+      "parameters": [
+        "group_columns",
+        "cost_column",
+        "table_name",
+        "filters"
+      ],
+      "example": "SELECT cloud, AVG(cost) as avg_cost, MIN(cost) as min_cost, MAX(cost) as max_cost FROM cost_analysis GROUP BY cloud ORDER BY avg_cost DESC"
+    }
+  }
+}

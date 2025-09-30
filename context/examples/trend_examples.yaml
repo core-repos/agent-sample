@@ -1,0 +1,80 @@
+# Trend Query Examples - Line Charts vs Area Charts
+
+# SIMPLE DAILY TRENDS (Line Charts) - Most Common
+simple_trends:
+  - question: "Show daily cost trend"
+    sql: "SELECT date, SUM(cost) AS daily_cost FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) GROUP BY date ORDER BY date"
+    visualization: "line"
+    rule: "Simple aggregation - NO window functions"
+
+  - question: "Daily cost by application"
+    sql: "SELECT date, application, SUM(cost) AS daily_cost FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) GROUP BY date, application ORDER BY date, application"
+    visualization: "line"
+    note: "Multi-series line chart - group by BOTH date and category"
+    format: "App1 - 2024-01-01: $500, App1 - 2024-01-02: $600, App2 - 2024-01-01: $300..."
+
+  - question: "Cost trend by cloud provider last 60 days"
+    sql: "SELECT date, cloud, SUM(cost) AS daily_cost FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY) GROUP BY date, cloud ORDER BY date, cloud"
+    visualization: "line"
+    note: "Multi-series - one line per cloud provider"
+
+# CUMULATIVE TRENDS (Area Charts) - ONLY when explicitly requested
+cumulative_trends:
+  - question: "Show cumulative cost over time"
+    sql: "SELECT date, SUM(SUM(cost)) OVER (ORDER BY date) AS cumulative_cost FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` GROUP BY date ORDER BY date"
+    visualization: "area"
+    rule: "Use window function ONLY when 'cumulative' is in question"
+
+  - question: "Running total of costs"
+    sql: "SELECT date, SUM(SUM(cost)) OVER (ORDER BY date) AS running_total FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` GROUP BY date ORDER BY date"
+    visualization: "area"
+    rule: "Window function for running total"
+
+# ROLLING AVERAGES - ONLY when explicitly requested
+rolling_average_trends:
+  - question: "Daily cost with 7-day rolling average"
+    sql: "SELECT date, SUM(cost) AS daily_cost, AVG(SUM(cost)) OVER (ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS rolling_7day_avg FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` GROUP BY date ORDER BY date"
+    visualization: "line"
+    rule: "Add rolling average ONLY when user explicitly requests smoothing"
+
+# IMPORTANT RULES
+rules:
+  simple_daily_trend:
+    - "DO NOT use window functions (SUM() OVER, AVG() OVER, etc.)"
+    - "Use: SELECT date, SUM(cost) GROUP BY date ORDER BY date"
+    - "Default to last 30 days if no range specified"
+    - "Each date shows actual daily cost, NOT cumulative"
+
+  multi_series_trend:
+    - "GROUP BY date AND category (application, cloud, etc.)"
+    - "ORDER BY date, category for proper series grouping"
+    - "Format response: 'Category - Date: Value'"
+
+  cumulative_trend:
+    - "ONLY when user says: cumulative, running total, accumulated"
+    - "Use: SUM(SUM(cost)) OVER (ORDER BY date)"
+    - "Visualization type: area chart"
+
+  rolling_average:
+    - "ONLY when user says: rolling average, moving average, smoothed"
+    - "Use: AVG(SUM(cost)) OVER (ORDER BY date ROWS BETWEEN N PRECEDING AND CURRENT ROW)"
+    - "N = window size - 1 (e.g., 6 for 7-day average)"
+
+  granularity:
+    - "Daily: GROUP BY date (default)"
+    - "Weekly: GROUP BY DATE_TRUNC(date, WEEK)"
+    - "Monthly: GROUP BY FORMAT_DATE('%Y-%m', date)"
+
+# COMMON MISTAKES TO AVOID
+avoid:
+  - mistake: "Using window functions for simple daily trends"
+    wrong: "SELECT date, SUM(SUM(cost)) OVER (ORDER BY date) FROM ..."
+    correct: "SELECT date, SUM(cost) AS daily_cost FROM ... GROUP BY date"
+
+  - mistake: "Missing multi-series grouping"
+    wrong: "SELECT date, SUM(cost) FROM ... GROUP BY date"
+    correct: "SELECT date, application, SUM(cost) FROM ... GROUP BY date, application"
+
+  - mistake: "Adding rolling average when not requested"
+    wrong: "SELECT date, AVG(cost) OVER (...) as rolling_avg"
+    correct: "Only add when user explicitly requests smoothing"

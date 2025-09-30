@@ -1,0 +1,117 @@
+# Claude Agents Framework Configuration
+# BigQuery Analytics Agent Project
+
+version: "1.0"
+project: "ADK-Agents"
+description: "Enterprise BigQuery Analytics with Natural Language Processing"
+
+# Core Framework Settings
+framework:
+  enabled: true
+  auto_activation: true
+  parallel_execution: true
+  max_concurrent_agents: 5
+  
+# Agent Types
+agent_types:
+  - bigquery-specialist
+  - frontend-ux
+  - data-viz
+  - api-optimizer
+  - deployment-engineer
+  - test-automation
+
+# Global Agent Settings
+global_settings:
+  timeout: 300
+  retry_count: 3
+  error_handling: graceful
+  logging: true
+  
+# Tool Access Matrix
+tool_access:
+  all_agents:
+    - Read
+    - Grep
+    - Glob
+    - Bash
+    - WebSearch
+    
+  bigquery-specialist:
+    - Edit
+    - Write
+    - MultiEdit
+    
+  frontend-ux:
+    - Edit
+    - Write
+    - MultiEdit
+    - WebFetch
+    
+  test-automation:
+    - Bash
+    - BashOutput
+    - KillBash
+
+# Workflow Definitions
+workflows:
+  query_optimization:
+    agents: [bigquery-specialist, api-optimizer]
+    parallel: true
+    
+  ui_enhancement:
+    agents: [frontend-ux, data-viz]
+    parallel: true
+    
+  full_deployment:
+    agents: [deployment-engineer, test-automation]
+    sequential: true
+    
+  end_to_end_test:
+    agents: [test-automation, bigquery-specialist, frontend-ux]
+    sequential: true
+
+# Auto-Activation Rules
+auto_activation:
+  patterns:
+    - pattern: "optimize.*query|improve.*sql|bigquery.*performance"
+      agent: bigquery-specialist
+      
+    - pattern: "ui.*improve|frontend.*fix|gradio.*update|make.*professional"
+      agent: frontend-ux
+      
+    - pattern: "chart|visualization|graph|plot"
+      agent: data-viz
+      
+    - pattern: "deploy|docker|kubernetes|cloud run"
+      agent: deployment-engineer
+      
+    - pattern: "test|verify|check.*working|puppeteer"
+      agent: test-automation
+      
+    - pattern: "api.*slow|optimize.*backend|cache|performance"
+      agent: api-optimizer
+
+# Error Recovery
+error_recovery:
+  strategies:
+    - retry_with_backoff
+    - fallback_to_cache
+    - graceful_degradation
+    
+# Performance Monitoring
+monitoring:
+  metrics:
+    - agent_execution_time
+    - success_rate
+    - error_count
+    - resource_usage
+    
+  alerts:
+    - type: execution_time
+      threshold: 60s
+      action: warn
+      
+    - type: error_rate
+      threshold: 0.3
+      action: halt

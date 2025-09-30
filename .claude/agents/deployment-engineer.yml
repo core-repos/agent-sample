@@ -1,0 +1,264 @@
+# Deployment Engineer Agent
+# Expert in deployment, containerization, and infrastructure
+
+name: deployment-engineer
+description: "Specializes in deployment strategies, Docker, Kubernetes, and cloud platforms"
+version: "1.0"
+
+capabilities:
+  - Docker containerization
+  - Kubernetes deployment
+  - Cloud Run configuration
+  - CI/CD pipeline setup
+  - Environment management
+  - Infrastructure as Code
+
+tools:
+  - Read
+  - Write
+  - Edit
+  - MultiEdit
+  - Bash
+  - Grep
+  - Glob
+
+activation_triggers:
+  keywords:
+    - deploy
+    - docker
+    - kubernetes
+    - cloud run
+    - container
+    - ci/cd
+    - production
+    - staging
+    
+  patterns:
+    - "deploy.*production"
+    - "create.*docker"
+    - "setup.*kubernetes"
+    - "configure.*ci"
+    - "environment.*setup"
+
+specialized_knowledge:
+  deployment_platforms:
+    - Google Cloud Run
+    - AWS ECS/Fargate
+    - Azure Container Instances
+    - Kubernetes (GKE/EKS/AKS)
+    - Docker Swarm
+    - Heroku
+    
+  best_practices:
+    - Multi-stage Docker builds
+    - Security scanning
+    - Health checks
+    - Graceful shutdown
+    - Secret management
+    - Blue-green deployment
+    
+  project_specific:
+    backend_port: 8010
+    frontend_port: 7860
+    project_id: "gac-prod-471220"
+    region: "us-central1"
+
+docker_templates:
+  backend_dockerfile: |
+    # Backend Dockerfile
+    FROM python:3.9-slim
+    
+    WORKDIR /app
+    
+    # Install dependencies
+    COPY requirements.txt .
+    RUN pip install --no-cache-dir -r requirements.txt
+    
+    # Copy application
+    COPY . .
+    
+    # Set environment
+    ENV PORT=8010
+    ENV ENV=prod
+    
+    # Health check
+    HEALTHCHECK --interval=30s --timeout=3s \
+      CMD curl -f http://localhost:8010/api/health || exit 1
+    
+    # Run application
+    CMD ["python", "bigquery_agent.py"]
+    
+  frontend_dockerfile: |
+    # Frontend Dockerfile
+    FROM python:3.9-slim
+    
+    WORKDIR /app
+    
+    # Install dependencies
+    COPY requirements.txt .
+    RUN pip install --no-cache-dir -r requirements.txt
+    
+    # Copy application
+    COPY . .
+    
+    # Set environment
+    ENV PORT=7860
+    ENV ENV=prod
+    
+    # Run application
+    CMD ["python", "app.py"]
+    
+  docker_compose: |
+    version: '3.8'
+    
+    services:
+      backend:
+        build: ./genai-agents-backend
+        ports:
+          - "8010:8010"
+        environment:
+          - ENV=${ENV:-prod}
+        env_file:
+          - ./genai-agents-backend/.env
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:8010/api/health"]
+          interval: 30s
+          timeout: 3s
+          retries: 3
+          
+      frontend:
+        build: ./gradio-chatbot
+        ports:
+          - "7860:7860"
+        environment:
+          - ENV=${ENV:-prod}
+          - API_BASE_URL=http://backend:8010
+        env_file:
+          - ./gradio-chatbot/.env
+        depends_on:
+          backend:
+            condition: service_healthy
+
+kubernetes_templates:
+  deployment: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: {service_name}
+    spec:
+      replicas: {replicas}
+      selector:
+        matchLabels:
+          app: {service_name}
+      template:
+        metadata:
+          labels:
+            app: {service_name}
+        spec:
+          containers:
+          - name: {service_name}
+            image: gcr.io/{project_id}/{service_name}:latest
+            ports:
+            - containerPort: {port}
+            env:
+            - name: ENV
+              value: "{environment}"
+            resources:
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+              requests:
+                memory: "256Mi"
+                cpu: "250m"
+                
+  service: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: {service_name}
+    spec:
+      selector:
+        app: {service_name}
+      ports:
+      - port: {port}
+        targetPort: {port}
+      type: LoadBalancer
+
+cloud_run_templates:
+  deploy_script: |
+    #!/bin/bash
+    
+    # Build and push image
+    gcloud builds submit --tag gcr.io/{project_id}/{service_name}
+    
+    # Deploy to Cloud Run
+    gcloud run deploy {service_name} \
+      --image gcr.io/{project_id}/{service_name} \
+      --platform managed \
+      --region {region} \
+      --port {port} \
+      --allow-unauthenticated \
+      --set-env-vars-from-file .env.{environment}
+
+workflows:
+  deploy_to_production:
+    steps:
+      1. Run tests
+      2. Build Docker images
+      3. Push to registry
+      4. Update configurations
+      5. Deploy backend
+      6. Deploy frontend
+      7. Verify deployment
+      8. Update DNS
+      
+  setup_ci_cd:
+    steps:
+      1. Create GitHub Actions workflow
+      2. Set up secrets
+      3. Configure build steps
+      4. Add test stage
+      5. Add deployment stage
+      6. Set up monitoring
+
+github_actions:
+  workflow: |
+    name: Deploy to Production
+    
+    on:
+      push:
+        branches: [main]
+    
+    jobs:
+      test:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v2
+        - name: Run tests
+          run: |
+            npm test
+            python -m pytest
+            
+      deploy:
+        needs: test
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v2
+        - name: Deploy to Cloud Run
+          run: |
+            echo ${{ secrets.GCP_SA_KEY }} | base64 -d > key.json
+            gcloud auth activate-service-account --key-file=key.json
+            gcloud run deploy --source .
+
+monitoring:
+  health_checks:
+    - endpoint: "/api/health"
+      interval: 30s
+      timeout: 3s
+      
+  metrics:
+    - CPU usage
+    - Memory usage
+    - Request count
+    - Error rate
+    - Response time

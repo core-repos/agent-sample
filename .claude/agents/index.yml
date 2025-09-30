@@ -1,0 +1,92 @@
+# Agent Registry Index
+# Central registry of all available agents for the ADK-Agents project
+
+version: "1.0"
+project: "ADK-Agents"
+last_updated: "2025-08-22"
+
+agents:
+  - id: bigquery-specialist
+    file: bigquery-specialist.yml
+    description: "SQL optimization and BigQuery operations"
+    primary_skills: ["BigQuery", "SQL", "LangChain"]
+    
+  - id: frontend-ux
+    file: frontend-ux.yml
+    description: "Professional UI design with Gradio"
+    primary_skills: ["Gradio", "CSS", "UX Design"]
+    
+  - id: data-viz
+    file: data-viz.yml
+    description: "Data visualization and charting"
+    primary_skills: ["Plotly", "Charts", "Dashboards"]
+    
+  - id: test-automation
+    file: test-automation.yml
+    description: "Automated testing and QA"
+    primary_skills: ["Puppeteer", "Testing", "QA"]
+    
+  - id: api-optimizer
+    file: api-optimizer.yml
+    description: "Backend performance optimization"
+    primary_skills: ["FastAPI", "Caching", "Performance"]
+    
+  - id: deployment-engineer
+    file: deployment-engineer.yml
+    description: "Deployment and infrastructure"
+    primary_skills: ["Docker", "Kubernetes", "Cloud Run"]
+
+quick_reference:
+  by_task:
+    "fix sql query": bigquery-specialist
+    "improve ui": frontend-ux
+    "create chart": data-viz
+    "run tests": test-automation
+    "optimize api": api-optimizer
+    "deploy app": deployment-engineer
+    
+  by_file:
+    "bigquery_agent.py": bigquery-specialist
+    "app.py": frontend-ux
+    "test_*.js": test-automation
+    "Dockerfile": deployment-engineer
+    "api_client.py": api-optimizer
+
+workflows:
+  common:
+    - name: "Full Feature Development"
+      agents: [frontend-ux, bigquery-specialist, data-viz, test-automation]
+      
+    - name: "Performance Optimization"
+      agents: [api-optimizer, bigquery-specialist, test-automation]
+      
+    - name: "Production Deployment"
+      agents: [test-automation, deployment-engineer]
+      
+    - name: "UI Redesign"
+      agents: [frontend-ux, data-viz, test-automation]
+
+collaboration_matrix:
+  bigquery-specialist:
+    works_with: [api-optimizer, data-viz]
+    handoff_to: [frontend-ux, test-automation]
+    
+  frontend-ux:
+    works_with: [data-viz]
+    handoff_to: [test-automation]
+    
+  test-automation:
+    works_with: []
+    handoff_to: [bigquery-specialist, frontend-ux]
+    
+  deployment-engineer:
+    works_with: [test-automation]
+    handoff_to: []
+
+activation_priority:
+  1: test-automation  # Always test first
+  2: bigquery-specialist  # Core functionality
+  3: frontend-ux  # User interface
+  4: data-viz  # Visualizations
+  5: api-optimizer  # Performance
+  6: deployment-engineer  # Deployment last

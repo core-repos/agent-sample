@@ -1,0 +1,354 @@
+{
+  "metadata": {
+    "table": "cost_analysis",
+    "dataset": "agent_bq_dataset",
+    "description": "SQL query examples for cost analysis operations",
+    "version": "1.0.0",
+    "created_date": "2024-09-28",
+    "query_categories": ["aggregations", "filters", "joins", "time_series", "comparative_analysis"]
+  },
+  "query_examples": {
+    "basic_aggregations": {
+      "total_cost_all_time": {
+        "description": "Calculate total cost across all time periods",
+        "sql": "SELECT SUM(cost) as total_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis`",
+        "expected_result_type": "scalar",
+        "visualization_hint": "kpi_indicator",
+        "parameters": {},
+        "tags": ["aggregation", "total", "kpi"]
+      },
+      "total_cost_by_cloud": {
+        "description": "Total cost breakdown by cloud provider",
+        "sql": "SELECT cloud, SUM(cost) as total_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY cloud ORDER BY total_cost DESC",
+        "expected_result_type": "grouped",
+        "visualization_hint": "bar_chart",
+        "parameters": {},
+        "tags": ["aggregation", "grouping", "cloud_provider"]
+      },
+      "average_daily_cost": {
+        "description": "Average daily cost across all applications",
+        "sql": "SELECT AVG(cost) as avg_daily_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis`",
+        "expected_result_type": "scalar",
+        "visualization_hint": "kpi_indicator",
+        "parameters": {},
+        "tags": ["aggregation", "average", "daily"]
+      },
+      "cost_by_environment": {
+        "description": "Cost distribution by environment (PROD vs NON-PROD)",
+        "sql": "SELECT environment, SUM(cost) as total_cost, COUNT(*) as record_count FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY environment ORDER BY total_cost DESC",
+        "expected_result_type": "grouped",
+        "visualization_hint": "pie_chart",
+        "parameters": {},
+        "tags": ["aggregation", "environment", "distribution"]
+      }
+    },
+    "time_based_queries": {
+      "daily_cost_trend_30_days": {
+        "description": "Daily cost trend for the last 30 days",
+        "sql": "SELECT date, SUM(cost) as daily_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) GROUP BY date ORDER BY date",
+        "expected_result_type": "time_series",
+        "visualization_hint": "line_chart",
+        "parameters": {
+          "days": 30
+        },
+        "tags": ["time_series", "trend", "daily"]
+      },
+      "monthly_cost_trend": {
+        "description": "Monthly cost aggregation over time",
+        "sql": "SELECT DATE_TRUNC(date, MONTH) as month, SUM(cost) as monthly_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY month ORDER BY month",
+        "expected_result_type": "time_series",
+        "visualization_hint": "line_chart",
+        "parameters": {},
+        "tags": ["time_series", "monthly", "aggregation"]
+      },
+      "weekly_cost_comparison": {
+        "description": "Week-over-week cost comparison",
+        "sql": "SELECT DATE_TRUNC(date, WEEK) as week, SUM(cost) as weekly_cost, LAG(SUM(cost)) OVER (ORDER BY DATE_TRUNC(date, WEEK)) as prev_week_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY week ORDER BY week",
+        "expected_result_type": "time_series",
+        "visualization_hint": "line_chart",
+        "parameters": {},
+        "tags": ["time_series", "weekly", "comparison"]
+      },
+      "cost_by_day_of_week": {
+        "description": "Cost pattern by day of the week",
+        "sql": "SELECT EXTRACT(DAYOFWEEK FROM date) as day_of_week, FORMAT_DATE('%A', date) as day_name, AVG(cost) as avg_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY day_of_week, day_name ORDER BY day_of_week",
+        "expected_result_type": "grouped",
+        "visualization_hint": "bar_chart",
+        "parameters": {},
+        "tags": ["time_series", "pattern", "day_of_week"]
+      }
+    },
+    "application_analysis": {
+      "top_applications_by_cost": {
+        "description": "Top 10 applications by total cost",
+        "sql": "SELECT application, SUM(cost) as total_cost, COUNT(DISTINCT date) as days_active FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY application ORDER BY total_cost DESC LIMIT {{ limit }}",
+        "expected_result_type": "ranked",
+        "visualization_hint": "bar_chart",
+        "parameters": {
+          "limit": 10
+        },
+        "tags": ["ranking", "applications", "top_n"]
+      },
+      "application_cost_by_environment": {
+        "description": "Application cost breakdown by environment",
+        "sql": "SELECT application, environment, SUM(cost) as total_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE application = '{{ application_name }}' GROUP BY application, environment ORDER BY total_cost DESC",
+        "expected_result_type": "grouped",
+        "visualization_hint": "stacked_bar_chart",
+        "parameters": {
+          "application_name": "user-management-api"
+        },
+        "tags": ["application", "environment", "breakdown"]
+      },
+      "application_daily_average": {
+        "description": "Daily average cost per application",
+        "sql": "SELECT application, AVG(cost) as avg_daily_cost, MIN(cost) as min_cost, MAX(cost) as max_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY application HAVING AVG(cost) > {{ min_avg_cost }} ORDER BY avg_daily_cost DESC",
+        "expected_result_type": "grouped",
+        "visualization_hint": "scatter_plot",
+        "parameters": {
+          "min_avg_cost": 50
+        },
+        "tags": ["application", "statistics", "average"]
+      }
+    },
+    "cloud_provider_analysis": {
+      "cloud_cost_comparison": {
+        "description": "Cost comparison across cloud providers",
+        "sql": "SELECT cloud, SUM(cost) as total_cost, AVG(cost) as avg_cost, COUNT(DISTINCT application) as app_count FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY cloud ORDER BY total_cost DESC",
+        "expected_result_type": "grouped",
+        "visualization_hint": "bar_chart",
+        "parameters": {},
+        "tags": ["cloud_provider", "comparison", "metrics"]
+      },
+      "cloud_utilization_by_service": {
+        "description": "Managed service utilization by cloud provider",
+        "sql": "SELECT cloud, managed_service, SUM(cost) as service_cost, COUNT(*) as usage_days FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE managed_service IS NOT NULL GROUP BY cloud, managed_service ORDER BY cloud, service_cost DESC",
+        "expected_result_type": "hierarchical",
+        "visualization_hint": "treemap",
+        "parameters": {},
+        "tags": ["cloud_provider", "services", "utilization"]
+      },
+      "cloud_cost_trend_by_month": {
+        "description": "Monthly cost trend by cloud provider",
+        "sql": "SELECT DATE_TRUNC(date, MONTH) as month, cloud, SUM(cost) as monthly_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL {{ months }} MONTH) GROUP BY month, cloud ORDER BY month, cloud",
+        "expected_result_type": "time_series_grouped",
+        "visualization_hint": "line_chart",
+        "parameters": {
+          "months": 6
+        },
+        "tags": ["cloud_provider", "trend", "monthly"]
+      }
+    },
+    "team_analysis": {
+      "cost_by_team": {
+        "description": "Cost allocation by product pillar team",
+        "sql": "SELECT tr_product_pillar_team as team, SUM(cost) as total_cost, COUNT(DISTINCT application) as app_count, COUNT(DISTINCT apm_id) as apm_count FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE tr_product_pillar_team IS NOT NULL GROUP BY tr_product_pillar_team ORDER BY total_cost DESC",
+        "expected_result_type": "grouped",
+        "visualization_hint": "bar_chart",
+        "parameters": {},
+        "tags": ["team", "allocation", "cost_center"]
+      },
+      "team_efficiency_metrics": {
+        "description": "Team efficiency: cost per application",
+        "sql": "SELECT tr_product_pillar_team as team, SUM(cost) as total_cost, COUNT(DISTINCT application) as app_count, ROUND(SUM(cost) / COUNT(DISTINCT application), 2) as cost_per_app FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE tr_product_pillar_team IS NOT NULL GROUP BY tr_product_pillar_team ORDER BY cost_per_app DESC",
+        "expected_result_type": "grouped",
+        "visualization_hint": "scatter_plot",
+        "parameters": {},
+        "tags": ["team", "efficiency", "metrics"]
+      },
+      "cto_organization_costs": {
+        "description": "Cost breakdown by CTO organization",
+        "sql": "SELECT cto, SUM(cost) as total_cost, COUNT(DISTINCT tr_product_pillar_team) as team_count, COUNT(DISTINCT apm_id) as apm_count, COUNT(DISTINCT application) as app_count FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE cto IS NOT NULL GROUP BY cto ORDER BY total_cost DESC",
+        "expected_result_type": "grouped",
+        "visualization_hint": "pie_chart",
+        "parameters": {},
+        "tags": ["cto", "organization", "hierarchy"]
+      },
+      "organizational_hierarchy_breakdown": {
+        "description": "Complete organizational hierarchy with cost breakdown",
+        "sql": "SELECT cto, tr_product_pillar_team, tr_subpillar_name, tr_product_id, tr_product, apm_id, COUNT(DISTINCT application) as app_count, SUM(cost) as total_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY cto, tr_product_pillar_team, tr_subpillar_name, tr_product_id, tr_product, apm_id ORDER BY total_cost DESC LIMIT {{ limit }}",
+        "expected_result_type": "hierarchical",
+        "visualization_hint": "treemap",
+        "parameters": {
+          "limit": 20
+        },
+        "tags": ["hierarchy", "organization", "complete_breakdown"]
+      }
+    },
+    "apm_analysis": {
+      "cost_by_apm_id": {
+        "description": "Cost breakdown by APM (Application Performance Management) ID",
+        "sql": "SELECT apm_id, SUM(cost) as total_cost, COUNT(DISTINCT application) as app_count, COUNT(DISTINCT tr_product_id) as product_count FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE apm_id IS NOT NULL GROUP BY apm_id ORDER BY total_cost DESC LIMIT {{ limit }}",
+        "expected_result_type": "grouped",
+        "visualization_hint": "bar_chart",
+        "parameters": {
+          "limit": 15
+        },
+        "tags": ["apm", "performance_management", "cost_breakdown"]
+      },
+      "apm_application_mapping": {
+        "description": "Applications grouped by APM ID with cost metrics",
+        "sql": "SELECT apm_id, application, SUM(cost) as total_cost, COUNT(*) as record_count, AVG(cost) as avg_daily_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE apm_id IS NOT NULL GROUP BY apm_id, application ORDER BY apm_id, total_cost DESC",
+        "expected_result_type": "hierarchical",
+        "visualization_hint": "treemap",
+        "parameters": {},
+        "tags": ["apm", "application_mapping", "hierarchy"]
+      },
+      "apm_efficiency_metrics": {
+        "description": "APM efficiency: cost per application managed",
+        "sql": "SELECT apm_id, SUM(cost) as total_cost, COUNT(DISTINCT application) as app_count, ROUND(SUM(cost) / COUNT(DISTINCT application), 2) as cost_per_app FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE apm_id IS NOT NULL GROUP BY apm_id HAVING COUNT(DISTINCT application) > 1 ORDER BY cost_per_app DESC",
+        "expected_result_type": "grouped",
+        "visualization_hint": "scatter_plot",
+        "parameters": {},
+        "tags": ["apm", "efficiency", "cost_per_app"]
+      },
+      "apm_product_relationship": {
+        "description": "APM to Product relationship with cost attribution",
+        "sql": "SELECT tr_product_id, tr_product, apm_id, COUNT(DISTINCT application) as app_count, SUM(cost) as product_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE tr_product_id IS NOT NULL AND apm_id IS NOT NULL GROUP BY tr_product_id, tr_product, apm_id ORDER BY tr_product_id, product_cost DESC",
+        "expected_result_type": "hierarchical",
+        "visualization_hint": "treemap",
+        "parameters": {},
+        "tags": ["apm", "product", "relationship", "hierarchy"]
+      }
+    },
+    "advanced_analytics": {
+      "cost_anomaly_detection": {
+        "description": "Detect cost anomalies using statistical analysis",
+        "sql": "WITH daily_stats AS (SELECT date, SUM(cost) as daily_total FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY date), stats AS (SELECT AVG(daily_total) as mean_cost, STDDEV(daily_total) as std_cost FROM daily_stats) SELECT d.date, d.daily_total, s.mean_cost, s.std_cost, ABS(d.daily_total - s.mean_cost) / s.std_cost as z_score FROM daily_stats d CROSS JOIN stats s WHERE ABS(d.daily_total - s.mean_cost) / s.std_cost > {{ z_threshold }} ORDER BY z_score DESC",
+        "expected_result_type": "anomaly_detection",
+        "visualization_hint": "scatter_plot",
+        "parameters": {
+          "z_threshold": 2.0
+        },
+        "tags": ["anomaly", "statistics", "outliers"]
+      },
+      "cost_correlation_analysis": {
+        "description": "Correlation between application count and total cost",
+        "sql": "SELECT date, COUNT(DISTINCT application) as app_count, SUM(cost) as total_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY date ORDER BY date",
+        "expected_result_type": "correlation",
+        "visualization_hint": "scatter_plot",
+        "parameters": {},
+        "tags": ["correlation", "application_count", "analysis"]
+      },
+      "seasonal_cost_patterns": {
+        "description": "Identify seasonal cost patterns by quarter",
+        "sql": "SELECT EXTRACT(QUARTER FROM date) as quarter, EXTRACT(YEAR FROM date) as year, AVG(cost) as avg_quarterly_cost, SUM(cost) as total_quarterly_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` GROUP BY quarter, year ORDER BY year, quarter",
+        "expected_result_type": "seasonal",
+        "visualization_hint": "heatmap",
+        "parameters": {},
+        "tags": ["seasonal", "quarterly", "patterns"]
+      }
+    },
+    "filtered_queries": {
+      "high_cost_applications": {
+        "description": "Applications with daily cost above threshold",
+        "sql": "SELECT application, cloud, environment, date, cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE cost > {{ cost_threshold }} ORDER BY cost DESC",
+        "expected_result_type": "filtered",
+        "visualization_hint": "table",
+        "parameters": {
+          "cost_threshold": 1000
+        },
+        "tags": ["filter", "high_cost", "threshold"]
+      },
+      "production_costs_only": {
+        "description": "Production environment costs analysis",
+        "sql": "SELECT cloud, application, SUM(cost) as prod_cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE environment = 'PROD' GROUP BY cloud, application ORDER BY prod_cost DESC",
+        "expected_result_type": "filtered_grouped",
+        "visualization_hint": "bar_chart",
+        "parameters": {},
+        "tags": ["filter", "production", "environment"]
+      },
+      "recent_cost_activity": {
+        "description": "Cost activity for the last N days",
+        "sql": "SELECT date, cloud, application, cost FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL {{ days }} DAY) ORDER BY date DESC, cost DESC",
+        "expected_result_type": "recent_activity",
+        "visualization_hint": "table",
+        "parameters": {
+          "days": 7
+        },
+        "tags": ["filter", "recent", "activity"]
+      }
+    }
+  },
+  "query_templates": {
+    "parameterized_queries": {
+      "cost_by_date_range": {
+        "description": "Template for querying costs within a date range",
+        "sql_template": "SELECT {{ select_fields }} FROM `{{ project_id }}.{{ dataset }}.cost_analysis` WHERE date BETWEEN '{{ start_date }}' AND '{{ end_date }}' {{ additional_filters }} {{ group_by }} {{ order_by }}",
+        "required_parameters": ["start_date", "end_date"],
+        "optional_parameters": {
+          "select_fields": "date, SUM(cost) as total_cost",
+          "additional_filters": "",
+          "group_by": "GROUP BY date",
+          "order_by": "ORDER BY date"
+        },
+        "example_usage": {
+          "start_date": "2024-01-01",
+          "end_date": "2024-01-31",
+          "select_fields": "date, cloud, SUM(cost) as total_cost",
+          "group_by": "GROUP BY date, cloud",
+          "order_by": "ORDER BY date, total_cost DESC"
+        }
+      },
+      "top_n_by_metric": {
+        "description": "Template for top N queries by any metric",
+        "sql_template": "SELECT {{ group_fields }}, {{ aggregation }} as metric_value FROM `{{ project_id }}.{{ dataset }}.cost_analysis` {{ where_clause }} GROUP BY {{ group_fields }} ORDER BY metric_value {{ sort_order }} LIMIT {{ limit }}",
+        "required_parameters": ["group_fields", "aggregation", "limit"],
+        "optional_parameters": {
+          "where_clause": "",
+          "sort_order": "DESC"
+        },
+        "example_usage": {
+          "group_fields": "application",
+          "aggregation": "SUM(cost)",
+          "limit": 5,
+          "where_clause": "WHERE environment = 'PROD'",
+          "sort_order": "DESC"
+        }
+      }
+    }
+  },
+  "common_patterns": {
+    "date_filters": [
+      "WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)",
+      "WHERE date >= DATE_TRUNC(CURRENT_DATE(), MONTH)",
+      "WHERE date >= DATE_TRUNC(CURRENT_DATE(), QUARTER)",
+      "WHERE date BETWEEN '2024-01-01' AND '2024-12-31'"
+    ],
+    "aggregation_patterns": [
+      "SUM(cost) as total_cost",
+      "AVG(cost) as average_cost",
+      "COUNT(DISTINCT application) as unique_applications",
+      "MAX(cost) as highest_cost",
+      "MIN(cost) as lowest_cost"
+    ],
+    "grouping_patterns": [
+      "GROUP BY cloud",
+      "GROUP BY application, environment",
+      "GROUP BY DATE_TRUNC(date, MONTH)",
+      "GROUP BY tr_product_pillar_team",
+      "GROUP BY cto, tr_product_pillar_team",
+      "GROUP BY apm_id, application",
+      "GROUP BY tr_product_id, apm_id",
+      "GROUP BY tr_subpillar_name, tr_product"
+    ],
+    "ordering_patterns": [
+      "ORDER BY total_cost DESC",
+      "ORDER BY date ASC",
+      "ORDER BY application, date",
+      "ORDER BY cost DESC LIMIT 10"
+    ]
+  },
+  "performance_hints": {
+    "indexing_suggestions": [
+      "Use clustering on (cloud, application, environment) for filtered queries",
+      "Partition by date for time-based queries",
+      "Consider materialized views for frequently accessed aggregations"
+    ],
+    "query_optimization": [
+      "Use DATE_TRUNC for monthly/quarterly aggregations",
+      "Apply filters before GROUP BY clauses",
+      "Use APPROX_COUNT_DISTINCT for large datasets",
+      "Limit result sets with appropriate LIMIT clauses"
+    ]
+  }
+}

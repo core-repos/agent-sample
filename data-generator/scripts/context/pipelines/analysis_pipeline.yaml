@@ -1,0 +1,392 @@
+# Analysis Pipeline Definitions
+# Pipeline step definitions for cost and budget analysis workflows
+# Version: 1.0.0
+# Created: 2024-09-28
+
+metadata:
+  version: "1.0.0"
+  created_date: "2024-09-28"
+  description: "Pipeline definitions for automated cost and budget analysis workflows"
+  supported_analysis_types: ["cost_analysis", "budget_analysis", "variance_analysis", "forecasting"]
+
+pipeline_templates:
+  cost_analysis_pipeline:
+    name: "Cost Analysis Pipeline"
+    description: "Complete cost analysis workflow from data query to visualization"
+    steps:
+      - step_id: "cost_data_extraction"
+        name: "Cost Data Extraction"
+        type: "sql_agent"
+        description: "Extract cost data based on user requirements"
+        inputs:
+          - user_query: "{{ user_request }}"
+          - time_period: "{{ analysis_period }}"
+          - filters: "{{ cost_filters }}"
+        outputs:
+          - sql_query: "Generated SQL query"
+          - raw_data: "Query results"
+        context_files:
+          - "context/schemas/cost_analysis.yaml"
+          - "context/examples/cost_analysis_queries.json"
+          - "context/prompts/sql_agent_prompts.yaml"
+        agent_prompt: "cost_analysis_specialist"
+
+      - step_id: "cost_data_processing"
+        name: "Cost Data Processing"
+        type: "data_processor"
+        description: "Clean and transform cost data for analysis"
+        inputs:
+          - raw_data: "{{ cost_data_extraction.raw_data }}"
+        outputs:
+          - processed_data: "Cleaned and formatted data"
+          - data_summary: "Data quality metrics"
+        processing_rules:
+          - "Handle NULL values in cost fields"
+          - "Validate date ranges"
+          - "Aggregate by specified dimensions"
+          - "Calculate derived metrics"
+
+      - step_id: "cost_analysis"
+        name: "Cost Analysis"
+        type: "analysis_agent"
+        description: "Perform statistical analysis on cost data"
+        inputs:
+          - processed_data: "{{ cost_data_processing.processed_data }}"
+          - analysis_type: "{{ analysis_type }}"
+        outputs:
+          - insights: "Business insights and findings"
+          - metrics: "Key performance indicators"
+          - anomalies: "Detected anomalies or outliers"
+        analysis_methods:
+          - "Trend analysis"
+          - "Variance calculation"
+          - "Anomaly detection"
+          - "Comparative analysis"
+
+      - step_id: "cost_visualization"
+        name: "Cost Visualization"
+        type: "visualization_agent"
+        description: "Generate appropriate visualizations for cost data"
+        inputs:
+          - processed_data: "{{ cost_data_processing.processed_data }}"
+          - insights: "{{ cost_analysis.insights }}"
+        outputs:
+          - chart_config: "Chart configuration"
+          - chart_data: "Formatted chart data"
+          - visualization_insights: "Chart-specific insights"
+        context_files:
+          - "context/prompts/visualization_prompts.yaml"
+        agent_prompt: "visualization_decision_engine"
+
+      - step_id: "cost_reporting"
+        name: "Cost Reporting"
+        type: "report_generator"
+        description: "Generate comprehensive cost analysis report"
+        inputs:
+          - insights: "{{ cost_analysis.insights }}"
+          - metrics: "{{ cost_analysis.metrics }}"
+          - chart_config: "{{ cost_visualization.chart_config }}"
+        outputs:
+          - report: "Formatted analysis report"
+          - recommendations: "Actionable recommendations"
+        report_sections:
+          - "Executive Summary"
+          - "Key Findings"
+          - "Detailed Analysis"
+          - "Visualizations"
+          - "Recommendations"
+
+  budget_analysis_pipeline:
+    name: "Budget Analysis Pipeline"
+    description: "Budget tracking and variance analysis workflow"
+    steps:
+      - step_id: "budget_data_extraction"
+        name: "Budget Data Extraction"
+        type: "sql_agent"
+        description: "Extract budget and utilization data"
+        inputs:
+          - user_query: "{{ user_request }}"
+          - budget_period: "{{ analysis_period }}"
+          - departments: "{{ department_filter }}"
+        outputs:
+          - sql_query: "Generated SQL query"
+          - budget_data: "Budget allocation and spending data"
+        context_files:
+          - "context/schemas/budget.yaml"
+          - "context/examples/budget_queries.json"
+          - "context/prompts/sql_agent_prompts.yaml"
+        agent_prompt: "budget_analysis_specialist"
+
+      - step_id: "budget_metrics_calculation"
+        name: "Budget Metrics Calculation"
+        type: "metrics_calculator"
+        description: "Calculate budget utilization and variance metrics"
+        inputs:
+          - budget_data: "{{ budget_data_extraction.budget_data }}"
+        outputs:
+          - utilization_metrics: "Budget utilization rates"
+          - variance_metrics: "Budget variance analysis"
+          - burn_rate_metrics: "Spending burn rates"
+        calculations:
+          - utilization_rate: "(spent_budget / allocated_budget) * 100"
+          - remaining_budget: "allocated_budget - spent_budget"
+          - daily_burn_rate: "spent_budget / days_elapsed"
+          - projected_spend: "daily_burn_rate * total_period_days"
+          - variance_amount: "spent_budget - expected_spend"
+          - variance_percentage: "(variance_amount / expected_spend) * 100"
+
+      - step_id: "budget_risk_assessment"
+        name: "Budget Risk Assessment"
+        type: "risk_analyzer"
+        description: "Assess budget risks and generate alerts"
+        inputs:
+          - utilization_metrics: "{{ budget_metrics_calculation.utilization_metrics }}"
+          - variance_metrics: "{{ budget_metrics_calculation.variance_metrics }}"
+        outputs:
+          - risk_assessment: "Risk levels by budget"
+          - alerts: "Budget alerts and warnings"
+          - recommendations: "Risk mitigation recommendations"
+        risk_thresholds:
+          critical_utilization: 95
+          warning_utilization: 85
+          critical_variance: 20
+          warning_variance: 10
+          critical_days_remaining: 7
+          warning_days_remaining: 30
+
+      - step_id: "budget_visualization"
+        name: "Budget Visualization"
+        type: "visualization_agent"
+        description: "Create budget dashboards and charts"
+        inputs:
+          - budget_data: "{{ budget_data_extraction.budget_data }}"
+          - metrics: "{{ budget_metrics_calculation }}"
+          - risk_assessment: "{{ budget_risk_assessment.risk_assessment }}"
+        outputs:
+          - dashboard_config: "Dashboard configuration"
+          - chart_configs: "Individual chart configurations"
+        visualization_types:
+          - "Budget utilization gauges"
+          - "Variance waterfall charts"
+          - "Burn rate trend lines"
+          - "Department comparison bars"
+          - "Risk heat maps"
+
+  variance_analysis_pipeline:
+    name: "Cost vs Budget Variance Analysis"
+    description: "Comprehensive variance analysis combining cost and budget data"
+    steps:
+      - step_id: "combined_data_extraction"
+        name: "Combined Data Extraction"
+        type: "sql_agent"
+        description: "Extract both cost and budget data for comparison"
+        inputs:
+          - user_query: "{{ user_request }}"
+          - analysis_period: "{{ time_period }}"
+        outputs:
+          - cost_data: "Actual cost data"
+          - budget_data: "Budget allocation data"
+          - combined_query: "Join query for variance analysis"
+        context_files:
+          - "context/schemas/cost_analysis.yaml"
+          - "context/schemas/budget.yaml"
+          - "context/examples/combined_queries.json"
+        agent_prompt: "combined_analysis_specialist"
+
+      - step_id: "variance_calculation"
+        name: "Variance Calculation"
+        type: "variance_analyzer"
+        description: "Calculate detailed variance metrics"
+        inputs:
+          - cost_data: "{{ combined_data_extraction.cost_data }}"
+          - budget_data: "{{ combined_data_extraction.budget_data }}"
+        outputs:
+          - variance_analysis: "Detailed variance breakdown"
+          - accuracy_metrics: "Budget accuracy measurements"
+          - efficiency_metrics: "Cost efficiency indicators"
+        variance_metrics:
+          - absolute_variance: "|actual_cost - budgeted_cost|"
+          - percentage_variance: "((actual_cost - budgeted_cost) / budgeted_cost) * 100"
+          - accuracy_error: "|actual_cost - budgeted_cost| / budgeted_cost * 100"
+          - efficiency_ratio: "actual_cost / budgeted_cost"
+
+      - step_id: "root_cause_analysis"
+        name: "Root Cause Analysis"
+        type: "analysis_agent"
+        description: "Identify factors contributing to variances"
+        inputs:
+          - variance_analysis: "{{ variance_calculation.variance_analysis }}"
+          - cost_data: "{{ combined_data_extraction.cost_data }}"
+        outputs:
+          - contributing_factors: "Factors causing variances"
+          - recommendations: "Actionable improvement suggestions"
+        analysis_dimensions:
+          - "Department performance"
+          - "Application cost drivers"
+          - "Seasonal patterns"
+          - "External factors"
+
+      - step_id: "variance_reporting"
+        name: "Variance Reporting"
+        type: "report_generator"
+        description: "Generate comprehensive variance report"
+        inputs:
+          - variance_analysis: "{{ variance_calculation.variance_analysis }}"
+          - contributing_factors: "{{ root_cause_analysis.contributing_factors }}"
+          - recommendations: "{{ root_cause_analysis.recommendations }}"
+        outputs:
+          - variance_report: "Executive variance report"
+          - action_plan: "Recommended action plan"
+
+  forecasting_pipeline:
+    name: "Cost and Budget Forecasting"
+    description: "Predictive analysis for cost and budget planning"
+    steps:
+      - step_id: "historical_data_analysis"
+        name: "Historical Data Analysis"
+        type: "time_series_analyzer"
+        description: "Analyze historical patterns and trends"
+        inputs:
+          - historical_period: "{{ forecast_lookback_period }}"
+        outputs:
+          - trend_analysis: "Historical trend patterns"
+          - seasonal_patterns: "Seasonal cost variations"
+          - growth_rates: "Historical growth rates"
+
+      - step_id: "forecast_modeling"
+        name: "Forecast Modeling"
+        type: "forecast_agent"
+        description: "Generate cost and budget forecasts"
+        inputs:
+          - trend_analysis: "{{ historical_data_analysis.trend_analysis }}"
+          - seasonal_patterns: "{{ historical_data_analysis.seasonal_patterns }}"
+          - forecast_horizon: "{{ forecast_period }}"
+        outputs:
+          - cost_forecast: "Projected costs"
+          - budget_requirements: "Recommended budget allocations"
+          - confidence_intervals: "Forecast uncertainty ranges"
+
+      - step_id: "scenario_analysis"
+        name: "Scenario Analysis"
+        type: "scenario_analyzer"
+        description: "Analyze different cost/budget scenarios"
+        inputs:
+          - base_forecast: "{{ forecast_modeling.cost_forecast }}"
+          - scenarios: "{{ scenario_parameters }}"
+        outputs:
+          - scenario_results: "Results for each scenario"
+          - risk_analysis: "Risk assessment for scenarios"
+        scenario_types:
+          - "Conservative growth"
+          - "Aggressive expansion"
+          - "Cost optimization"
+          - "Market downturn"
+
+workflow_orchestration:
+  execution_engine:
+    type: "sequential"
+    error_handling: "fail_fast"
+    retry_policy:
+      max_retries: 3
+      backoff_strategy: "exponential"
+
+  step_dependencies:
+    validation_rules:
+      - "Each step must declare required inputs"
+      - "Output names must be unique within pipeline"
+      - "Context files must exist"
+      - "Agent prompts must be defined"
+
+  context_management:
+    loading_strategy: "lazy"
+    caching_policy: "step_level"
+    context_inheritance:
+      - "Schema files available to all SQL steps"
+      - "Prompt templates inherited by agent type"
+      - "Previous step outputs automatically available"
+
+pipeline_configurations:
+  cost_analysis_config:
+    default_parameters:
+      analysis_period: "last_30_days"
+      cost_filters: []
+      analysis_type: "comprehensive"
+
+    customization_options:
+      time_periods: ["last_7_days", "last_30_days", "last_90_days", "current_month", "current_quarter"]
+      analysis_types: ["trend", "variance", "comparative", "comprehensive"]
+      output_formats: ["dashboard", "report", "api_response"]
+
+  budget_analysis_config:
+    default_parameters:
+      analysis_period: "current_quarter"
+      department_filter: "all"
+      include_projections: true
+
+    alert_configurations:
+      utilization_thresholds: [85, 95]
+      variance_thresholds: [10, 20]
+      notification_channels: ["email", "slack", "dashboard"]
+
+  variance_analysis_config:
+    default_parameters:
+      comparison_period: "month_to_month"
+      variance_threshold: 10
+      include_root_cause: true
+
+    analysis_depth:
+      basic: ["total_variance", "department_breakdown"]
+      detailed: ["application_level", "trend_analysis", "contributing_factors"]
+      comprehensive: ["root_cause_analysis", "recommendations", "action_plan"]
+
+common_step_types:
+  sql_agent:
+    description: "Executes SQL queries using context-aware agents"
+    required_inputs: ["user_query"]
+    optional_inputs: ["filters", "time_period", "aggregation_level"]
+    outputs: ["sql_query", "raw_data", "data_summary"]
+
+  data_processor:
+    description: "Cleans and transforms data for analysis"
+    required_inputs: ["raw_data"]
+    optional_inputs: ["processing_rules", "data_quality_checks"]
+    outputs: ["processed_data", "data_quality_report"]
+
+  analysis_agent:
+    description: "Performs statistical analysis and insight generation"
+    required_inputs: ["processed_data", "analysis_type"]
+    optional_inputs: ["comparison_data", "thresholds"]
+    outputs: ["insights", "metrics", "recommendations"]
+
+  visualization_agent:
+    description: "Generates visualizations and charts"
+    required_inputs: ["data", "chart_type"]
+    optional_inputs: ["styling_preferences", "interactivity_options"]
+    outputs: ["chart_config", "chart_data", "visualization_metadata"]
+
+  report_generator:
+    description: "Creates formatted reports and summaries"
+    required_inputs: ["analysis_results"]
+    optional_inputs: ["report_template", "output_format"]
+    outputs: ["formatted_report", "executive_summary"]
+
+monitoring_and_logging:
+  execution_tracking:
+    - step_start_time
+    - step_end_time
+    - step_duration
+    - input_data_size
+    - output_data_size
+    - error_details
+
+  performance_metrics:
+    - query_execution_time
+    - data_processing_time
+    - visualization_rendering_time
+    - total_pipeline_duration
+
+  quality_metrics:
+    - data_completeness
+    - query_accuracy
+    - insight_relevance
+    - visualization_effectiveness

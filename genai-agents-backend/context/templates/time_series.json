@@ -1,0 +1,44 @@
+{
+  "templates": {
+    "daily_trend": {
+      "name": "daily_trend",
+      "description": "Daily cost trend analysis",
+      "category": "time_series",
+      "template": "SELECT {{ date_column }}, SUM({{ cost_column }}) as daily_cost FROM {{ table_name }} {% if filters %}WHERE {{ filters }}{% endif %} GROUP BY {{ date_column }} ORDER BY {{ date_column }}",
+      "parameters": [
+        "date_column",
+        "cost_column",
+        "table_name",
+        "filters"
+      ],
+      "example": "SELECT date, SUM(cost) as daily_cost FROM cost_analysis WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) GROUP BY date ORDER BY date"
+    },
+    "monthly_comparison": {
+      "name": "monthly_comparison",
+      "description": "Month-over-month cost comparison",
+      "category": "time_series",
+      "template": "SELECT EXTRACT(YEAR FROM {{ date_column }}) as year, EXTRACT(MONTH FROM {{ date_column }}) as month, SUM({{ cost_column }}) as monthly_cost FROM {{ table_name }} {% if filters %}WHERE {{ filters }}{% endif %} GROUP BY year, month ORDER BY year, month",
+      "parameters": [
+        "date_column",
+        "cost_column",
+        "table_name",
+        "filters"
+      ],
+      "example": "SELECT EXTRACT(YEAR FROM date) as year, EXTRACT(MONTH FROM date) as month, SUM(cost) as monthly_cost FROM cost_analysis GROUP BY year, month ORDER BY year, month"
+    },
+    "rolling_average": {
+      "name": "rolling_average",
+      "description": "Rolling average cost calculation",
+      "category": "time_series",
+      "template": "SELECT {{ date_column }}, SUM({{ cost_column }}) as daily_cost, AVG(SUM({{ cost_column }})) OVER (ORDER BY {{ date_column }} ROWS BETWEEN {{ window_size }} PRECEDING AND CURRENT ROW) as rolling_avg FROM {{ table_name }} {% if filters %}WHERE {{ filters }}{% endif %} GROUP BY {{ date_column }} ORDER BY {{ date_column }}",
+      "parameters": [
+        "date_column",
+        "cost_column",
+        "table_name",
+        "filters",
+        "window_size"
+      ],
+      "example": "SELECT date, SUM(cost) as daily_cost, AVG(SUM(cost)) OVER (ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as rolling_7day_avg FROM cost_analysis GROUP BY date ORDER BY date"
+    }
+  }
+}

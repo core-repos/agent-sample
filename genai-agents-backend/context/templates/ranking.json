@@ -1,0 +1,46 @@
+{
+  "templates": {
+    "top_n": {
+      "name": "top_n",
+      "description": "Get top N records by a metric",
+      "category": "ranking",
+      "template": "SELECT {{ select_columns }}, {{ metric_column }} FROM {{ table_name }} {% if filters %}WHERE {{ filters }}{% endif %} ORDER BY {{ metric_column }} DESC LIMIT {{ limit }}",
+      "parameters": [
+        "select_columns",
+        "metric_column",
+        "table_name",
+        "filters",
+        "limit"
+      ],
+      "example": "SELECT application, SUM(cost) as total_cost FROM cost_analysis GROUP BY application ORDER BY total_cost DESC LIMIT 10"
+    },
+    "bottom_n": {
+      "name": "bottom_n",
+      "description": "Get bottom N records by a metric",
+      "category": "ranking",
+      "template": "SELECT {{ select_columns }}, {{ metric_column }} FROM {{ table_name }} {% if filters %}WHERE {{ filters }}{% endif %} ORDER BY {{ metric_column }} ASC LIMIT {{ limit }}",
+      "parameters": [
+        "select_columns",
+        "metric_column",
+        "table_name",
+        "filters",
+        "limit"
+      ],
+      "example": "SELECT application, SUM(cost) as total_cost FROM cost_analysis GROUP BY application ORDER BY total_cost ASC LIMIT 5"
+    },
+    "percentile_ranking": {
+      "name": "percentile_ranking",
+      "description": "Rank records with percentile calculations",
+      "category": "ranking",
+      "template": "SELECT {{ select_columns }}, {{ metric_column }}, PERCENT_RANK() OVER (ORDER BY {{ metric_column }}) as percentile_rank, NTILE({{ buckets }}) OVER (ORDER BY {{ metric_column }}) as quartile FROM {{ table_name }} {% if filters %}WHERE {{ filters }}{% endif %} ORDER BY {{ metric_column }} DESC",
+      "parameters": [
+        "select_columns",
+        "metric_column",
+        "table_name",
+        "filters",
+        "buckets"
+      ],
+      "example": "SELECT application, SUM(cost) as total_cost, PERCENT_RANK() OVER (ORDER BY SUM(cost)) as percentile_rank FROM cost_analysis GROUP BY application ORDER BY total_cost DESC"
+    }
+  }
+}

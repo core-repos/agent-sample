@@ -1,0 +1,64 @@
+examples:
+  - question: "What is the total cost?"
+    sql: "SELECT SUM(cost) AS total_cost FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis`"
+    description: "Simple aggregation of all costs"
+
+  - question: "Show me cost by cloud provider"
+    sql: "SELECT cloud, SUM(cost) AS total_cost, COUNT(*) AS record_count FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` GROUP BY cloud ORDER BY total_cost DESC"
+    description: "Cost breakdown by cloud provider (AWS, Azure, GCP)"
+
+  - question: "What are the top applications by cost?"
+    sql: "SELECT application, SUM(cost) AS total_cost, COUNT(*) AS usage_count FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` GROUP BY application ORDER BY total_cost DESC LIMIT 10"
+    description: "Top applications ranked by total cost"
+
+  - question: "Cost breakdown by environment"
+    sql: "SELECT environment, SUM(cost) AS total_cost, ROUND(SUM(cost) * 100.0 / (SELECT SUM(cost) FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis`), 2) AS percentage FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` GROUP BY environment ORDER BY total_cost DESC"
+    description: "Production vs Non-Production cost analysis with percentages"
+
+  - question: "Show cost by CTO organization"
+    sql: "SELECT cto, SUM(cost) AS total_cost, COUNT(DISTINCT tr_product_pillar_team) AS teams_count FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` GROUP BY cto ORDER BY total_cost DESC"
+    description: "Cost aggregated by CTO organization"
+
+  - question: "What services cost the most?"
+    sql: "SELECT managed_service, service_name, SUM(cost) AS total_cost, COUNT(DISTINCT application) AS apps_using FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` GROUP BY managed_service, service_name ORDER BY total_cost DESC LIMIT 15"
+    description: "Most expensive services and managed services"
+
+  - question: "Daily cost trend last 30 days"
+    sql: "SELECT date, SUM(cost) AS daily_cost FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) GROUP BY date ORDER BY date"
+    description: "Simple daily cost trend (NOT cumulative) - shows actual daily cost per date"
+    visualization: "line"
+    note: "Use simple aggregation, do NOT use window functions like SUM() OVER() unless cumulative is explicitly requested"
+
+  - question: "Cost by product team and sub-pillar"
+    sql: "SELECT tr_product_pillar_team, tr_subpillar_name, tr_product_id, tr_product, SUM(cost) AS total_cost FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` GROUP BY tr_product_pillar_team, tr_subpillar_name, tr_product_id, tr_product ORDER BY total_cost DESC"
+    description: "Product hierarchy cost analysis"
+
+  - question: "Application hierarchy analysis with APM"
+    sql: "SELECT cto, tr_product_pillar_team, tr_subpillar_name, tr_product_id, tr_product, apm_id, application, SUM(cost) AS total_cost FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` GROUP BY cto, tr_product_pillar_team, tr_subpillar_name, tr_product_id, tr_product, apm_id, application ORDER BY total_cost DESC"
+    description: "Complete application hierarchy including APM IDs"
+
+  - question: "Cost by APM ID"
+    sql: "SELECT apm_id, COUNT(DISTINCT application) AS app_count, SUM(cost) AS total_cost, ROUND(AVG(cost), 2) AS avg_cost FROM `gac-prod-471220`.`agent_bq_dataset`.`cost_analysis` GROUP BY apm_id ORDER BY total_cost DESC"
+    description: "Application Portfolio Management cost analysis"
+
+field_usage_rules:
+  - "Always use date for time-based filtering (DATE type)"
+  - "Use cto for organizational grouping"
+  - "Use cloud for provider analysis (AWS, Azure, GCP)"
+  - "Use tr_product_pillar_team for team-level grouping"
+  - "Use tr_subpillar_name for sub-team analysis"
+  - "Use tr_product_id (INTEGER) for product identification"
+  - "Use tr_product for product names"
+  - "Use apm_id (STRING) for Application Portfolio Management analysis"
+  - "Use application for application-level analysis"
+  - "Use service_name for specific service instances"
+  - "Use managed_service for service type analysis (EC2, S3, etc.)"
+  - "Use environment for PROD vs NON-PROD analysis"
+  - "Use cost (FLOAT) for all cost calculations"
+
+common_patterns:
+  - aggregation: "SUM(cost), AVG(cost), COUNT(*)"
+  - grouping: "GROUP BY cto, tr_product_pillar_team, cloud, environment"
+  - filtering: "WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL X DAY)"
+  - ranking: "ORDER BY total_cost DESC LIMIT 10"
+  - percentage: "ROUND(SUM(cost) * 100.0 / total, 2) AS percentage"

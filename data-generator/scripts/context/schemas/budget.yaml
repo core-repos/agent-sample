@@ -1,0 +1,381 @@
+# Budget Table Schema - Fiscal Year Budget Structure
+# BigQuery table schema definition for fiscal year budget allocation and tracking
+# Project: BigQuery Analytics AI Agent Platform
+# Dataset: agent_bq_dataset
+# Table: budget
+
+metadata:
+  table_name: budget
+  dataset: agent_bq_dataset
+  project_id: "{{ GCP_PROJECT_ID }}"
+  description: "Fiscal year budget allocation and tracking by product with organizational hierarchy"
+  record_count: "{{ ESTIMATED_RECORD_COUNT }}"
+  created_date: "{{ CURRENT_DATE }}"
+  last_updated: "{{ CURRENT_DATE }}"
+  data_retention_days: 1095  # 3 years
+  partition_field: "tr_product_pillar_team"  # Updated for product-based partitioning
+  clustering_fields: ["cto", "tr_product_id"]
+
+schema:
+  fields:
+    - name: cto
+      type: STRING
+      mode: REQUIRED
+      description: "Chief Technology Organization (e.g., Engineering, Data & Analytics, Security & Compliance, Operations)"
+      constraints:
+        - "LENGTH(cto) <= 100"
+        - "cto != ''"
+      examples:
+        - "Health/ENTERPRISE FINANCE TECH"
+        - "Engineering"
+        - "Data & Analytics"
+        - "Security & Compliance"
+        - "Operations"
+        - "Product Development"
+
+    - name: tr_product_pillar_team
+      type: STRING
+      mode: REQUIRED
+      description: "Product pillar team name (matches tr_product_pillar_team from cost_analysis)"
+      constraints:
+        - "LENGTH(tr_product_pillar_team) <= 100"
+        - "tr_product_pillar_team != ''"
+      examples:
+        - "Platform Engineering"
+        - "Data Analytics"
+        - "Customer Success"
+        - "Product Development"
+        - "DevOps & SRE"
+        - "ENTERPRISE FINANCE TECH"
+
+    - name: tr_subpillar_name
+      type: STRING
+      mode: REQUIRED
+      description: "Sub-pillar name within the product pillar team"
+      constraints:
+        - "LENGTH(tr_subpillar_name) <= 100"
+        - "tr_subpillar_name != ''"
+      examples:
+        - "Backend Services"
+        - "Frontend Development"
+        - "Infrastructure"
+        - "Data Pipeline"
+        - "Analytics Platform"
+        - "ENTERPRISE FINANCE TECH"
+
+    - name: tr_product_id
+      type: INTEGER
+      mode: REQUIRED
+      description: "Unique product identifier"
+      constraints:
+        - "tr_product_id > 0"
+        - "tr_product_id <= 9999"
+      examples:
+        - 736
+        - 125
+        - 892
+        - 456
+        - 234
+
+    - name: tr_product
+      type: STRING
+      mode: REQUIRED
+      description: "Product name or service description"
+      constraints:
+        - "LENGTH(tr_product) <= 200"
+        - "tr_product != ''"
+      examples:
+        - "delivery as service"
+        - "analytics dashboard"
+        - "customer portal"
+        - "payment processing"
+        - "data warehouse"
+        - "reporting engine"
+
+    - name: fy_24_budget
+      type: FLOAT
+      mode: REQUIRED
+      description: "Fiscal Year 2024 allocated budget in USD"
+      constraints:
+        - "fy_24_budget >= 0"
+        - "fy_24_budget <= 10000000"  # 10M upper limit
+      examples:
+        - 15000.00
+        - 25000.00
+        - 50000.00
+        - 125000.00
+        - 275000.00
+
+    - name: fy_25_budget
+      type: FLOAT
+      mode: REQUIRED
+      description: "Fiscal Year 2025 allocated budget in USD"
+      constraints:
+        - "fy_25_budget >= 0"
+        - "fy_25_budget <= 10000000"  # 10M upper limit
+      examples:
+        - 15000.00
+        - 27500.00
+        - 55000.00
+        - 137500.00
+        - 302500.00
+
+    - name: fy_26_budget
+      type: FLOAT
+      mode: REQUIRED
+      description: "Fiscal Year 2026 allocated budget in USD"
+      constraints:
+        - "fy_26_budget >= 0"
+        - "fy_26_budget <= 10000000"  # 10M upper limit
+      examples:
+        - 15000.00
+        - 30000.00
+        - 60000.00
+        - 150000.00
+        - 330000.00
+
+    - name: fy26_ytd_spend
+      type: FLOAT
+      mode: REQUIRED
+      description: "Fiscal Year 2026 year-to-date spending in USD"
+      constraints:
+        - "fy26_ytd_spend >= 0"
+        - "fy26_ytd_spend <= fy_26_budget * 1.5"  # Allow 50% overspend for tracking
+      examples:
+        - 4500.00
+        - 9000.00
+        - 18000.00
+        - 45000.00
+        - 99000.00
+
+    - name: fy26_projected_spend
+      type: FLOAT
+      mode: REQUIRED
+      description: "Fiscal Year 2026 projected total spending in USD"
+      constraints:
+        - "fy26_projected_spend >= fy26_ytd_spend"
+        - "fy26_projected_spend <= fy_26_budget * 2.0"  # Allow 100% overspend for projections
+      examples:
+        - 18000.00
+        - 36000.00
+        - 72000.00
+        - 180000.00
+        - 396000.00
+
+indexes:
+  primary:
+    - tr_product_id
+
+  secondary:
+    - name: idx_budget_cto_team
+      fields: [cto, tr_product_pillar_team]
+      type: "BTREE"
+
+    - name: idx_budget_product_team
+      fields: [tr_product_pillar_team, tr_subpillar_name]
+      type: "BTREE"
+
+    - name: idx_budget_fy26_performance
+      fields: [fy_26_budget, fy26_ytd_spend, fy26_projected_spend]
+      type: "BTREE"
+
+    - name: idx_budget_multi_year
+      fields: [fy_24_budget, fy_25_budget, fy_26_budget]
+      type: "BTREE"
+
+computed_fields:
+  - name: fy26_ytd_utilization_pct
+    type: FLOAT
+    computation: "ROUND((fy26_ytd_spend / fy_26_budget) * 100, 2)"
+    description: "FY26 year-to-date budget utilization percentage"
+
+  - name: fy26_projected_utilization_pct
+    type: FLOAT
+    computation: "ROUND((fy26_projected_spend / fy_26_budget) * 100, 2)"
+    description: "FY26 projected budget utilization percentage"
+
+  - name: fy26_remaining_budget
+    type: FLOAT
+    computation: "fy_26_budget - fy26_ytd_spend"
+    description: "Remaining FY26 budget (allocated - YTD spend)"
+
+  - name: fy26_projected_variance
+    type: FLOAT
+    computation: "fy26_projected_spend - fy_26_budget"
+    description: "FY26 projected variance (projected - allocated)"
+
+  - name: fy26_projected_variance_pct
+    type: FLOAT
+    computation: "ROUND(((fy26_projected_spend - fy_26_budget) / fy_26_budget) * 100, 2)"
+    description: "FY26 projected variance percentage"
+
+  - name: fy25_to_fy26_growth_pct
+    type: FLOAT
+    computation: "ROUND(((fy_26_budget - fy_25_budget) / fy_25_budget) * 100, 2)"
+    description: "Budget growth from FY25 to FY26"
+
+  - name: fy24_to_fy26_growth_pct
+    type: FLOAT
+    computation: "ROUND(((fy_26_budget - fy_24_budget) / fy_24_budget) * 100, 2)"
+    description: "Two-year budget growth from FY24 to FY26"
+
+  - name: fy26_burn_rate_monthly
+    type: FLOAT
+    computation: "fy26_ytd_spend / GREATEST(DATE_DIFF(CURRENT_DATE(), DATE('2025-10-01'), MONTH), 1)"
+    description: "FY26 average monthly burn rate"
+
+  - name: fy26_budget_performance_category
+    type: STRING
+    computation: "CASE WHEN (fy26_projected_spend / fy_26_budget) > 1.1 THEN 'OVER_BUDGET' WHEN (fy26_projected_spend / fy_26_budget) > 0.95 THEN 'AT_RISK' WHEN (fy26_projected_spend / fy_26_budget) < 0.8 THEN 'UNDER_UTILIZED' ELSE 'ON_TRACK' END"
+    description: "FY26 budget performance categorization"
+
+statistics:
+  sample_data:
+    total_products: 450
+    active_products_fy26: 425
+    cto_organizations: 6
+    product_teams: 25
+    sub_pillars: 75
+    avg_fy26_budget: 45000
+    total_fy26_allocated: 19125000
+    total_fy26_ytd_spend: 5737500
+    total_fy26_projected: 22950000
+    overall_ytd_utilization: 30.0
+    overall_projected_utilization: 120.0
+
+  budget_distribution:
+    by_cto:
+      "Health/ENTERPRISE FINANCE TECH": 85
+      "Engineering": 120
+      "Data & Analytics": 95
+      "Security & Compliance": 55
+      "Operations": 65
+      "Product Development": 80
+    by_size:
+      "Small (<$10K)": 125
+      "Medium ($10K-$50K)": 200
+      "Large ($50K-$100K)": 75
+      "Enterprise (>$100K)": 50
+    by_utilization_fy26:
+      "Under-utilized (<80%)": 180
+      "On-track (80-100%)": 165
+      "Over-budget (>100%)": 80
+      "Critical (>120%)": 25
+
+query_patterns:
+  fiscal_year_filters:
+    - "WHERE fy_26_budget > 0"
+    - "WHERE fy26_projected_spend > fy_26_budget"  # Over budget
+    - "WHERE (fy26_ytd_spend / fy_26_budget) > 0.8"  # High utilization
+    - "WHERE cto = 'Health/ENTERPRISE FINANCE TECH'"
+    - "WHERE tr_product_pillar_team = 'Platform Engineering'"
+
+  common_aggregations:
+    - "SUM(fy_26_budget) as total_fy26_budget"
+    - "SUM(fy26_ytd_spend) as total_ytd_spend"
+    - "SUM(fy26_projected_spend) as total_projected_spend"
+    - "AVG((fy26_ytd_spend / fy_26_budget) * 100) as avg_utilization_pct"
+    - "COUNT(DISTINCT tr_product_pillar_team) as team_count"
+
+  common_calculations:
+    - "fy_26_budget - fy26_ytd_spend as remaining_budget"
+    - "(fy26_ytd_spend / fy_26_budget) * 100 as ytd_utilization_pct"
+    - "(fy26_projected_spend / fy_26_budget) * 100 as projected_utilization_pct"
+    - "fy26_projected_spend - fy_26_budget as projected_variance"
+    - "((fy_26_budget - fy_25_budget) / fy_25_budget) * 100 as fy26_growth_pct"
+
+  multi_year_analysis:
+    - "SUM(fy_24_budget + fy_25_budget + fy_26_budget) as total_3yr_budget"
+    - "((fy_26_budget - fy_24_budget) / fy_24_budget) * 100 as growth_2yr_pct"
+    - "GREATEST(fy_24_budget, fy_25_budget, fy_26_budget) as peak_budget"
+    - "(fy_24_budget + fy_25_budget + fy_26_budget) / 3 as avg_annual_budget"
+
+validation_rules:
+  data_quality:
+    - rule: "no_null_required_fields"
+      sql: "SELECT COUNT(*) FROM `{project_id}.{dataset}.{table}` WHERE cto IS NULL OR tr_product_pillar_team IS NULL OR tr_product_id IS NULL OR fy_26_budget IS NULL OR fy26_ytd_spend IS NULL OR fy26_projected_spend IS NULL"
+      expected: 0
+
+    - rule: "valid_budget_amounts"
+      sql: "SELECT COUNT(*) FROM `{project_id}.{dataset}.{table}` WHERE fy_24_budget < 0 OR fy_25_budget < 0 OR fy_26_budget < 0 OR fy26_ytd_spend < 0 OR fy26_projected_spend < 0"
+      expected: 0
+
+    - rule: "valid_product_ids"
+      sql: "SELECT COUNT(*) FROM `{project_id}.{dataset}.{table}` WHERE tr_product_id <= 0 OR tr_product_id > 9999"
+      expected: 0
+
+    - rule: "valid_projection_logic"
+      sql: "SELECT COUNT(*) FROM `{project_id}.{dataset}.{table}` WHERE fy26_projected_spend < fy26_ytd_spend"
+      expected: 0
+
+    - rule: "unique_product_ids"
+      sql: "SELECT COUNT(*) - COUNT(DISTINCT tr_product_id) FROM `{project_id}.{dataset}.{table}`"
+      expected: 0
+
+  fiscal_year_rules:
+    - rule: "fy26_budget_growth_reasonable"
+      sql: "SELECT COUNT(*) FROM `{project_id}.{dataset}.{table}` WHERE ABS((fy_26_budget - fy_25_budget) / fy_25_budget) > 2.0"  # >200% change
+      expected: 0
+      description: "Budget changes should be reasonable (< 200% year-over-year)"
+
+    - rule: "ytd_spending_within_range"
+      sql: "SELECT COUNT(*) FROM `{project_id}.{dataset}.{table}` WHERE fy26_ytd_spend > fy_26_budget * 1.5"  # >150% overspend
+      expected: 0
+      description: "YTD spending should not exceed 150% of allocated budget"
+
+business_rules:
+  fiscal_year_cycles:
+    fy24_period: "October 1, 2023 to September 30, 2024"
+    fy25_period: "October 1, 2024 to September 30, 2025"
+    fy26_period: "October 1, 2025 to September 30, 2026"
+    budget_planning_cycle: "Begins July 1st for following fiscal year"
+    quarterly_reviews: ["December 31", "March 31", "June 30", "September 30"]
+
+  alert_thresholds:
+    ytd_utilization_warning: 0.85  # 85%
+    ytd_utilization_critical: 1.0  # 100%
+    projected_overspend_warning: 1.1  # 110%
+    projected_overspend_critical: 1.2  # 120%
+    under_utilization_threshold: 0.5  # 50%
+    variance_review_threshold: 0.1  # 10%
+    variance_action_threshold: 0.2  # 20%
+
+  approval_requirements:
+    budget_changes_over_10pct: "Director approval required"
+    budget_changes_over_25pct: "VP approval required"
+    budget_changes_over_50pct: "C-Level approval required"
+    new_products_over_100k: "Board approval required"
+
+  reporting_requirements:
+    monthly_budget_reports: "Required for all CTO organizations"
+    quarterly_variance_analysis: "Mandatory for products >$50K budget"
+    annual_budget_planning: "All products must submit FY27 requests by July 1, 2026"
+    overspend_notifications: "Immediate alert for >20% projected overspend"
+
+  sample_data_context:
+    example_organization:
+      cto: "Health/ENTERPRISE FINANCE TECH"
+      product_team: "ENTERPRISE FINANCE TECH"
+      sub_pillar: "ENTERPRISE FINANCE TECH"
+      product_id: 736
+      product_name: "delivery as service"
+      budget_allocation:
+        fy_24: 15000
+        fy_25: 15000
+        fy_26: 15000
+      fy26_performance:
+        ytd_spend: 4500
+        projected_spend: 18000
+        utilization_ytd: 30.0
+        utilization_projected: 120.0
+        variance_amount: 3000
+        variance_pct: 20.0
+        performance_category: "OVER_BUDGET"
+        risk_level: "Medium - Monitor closely"
+
+  cost_analysis_integration:
+    join_field: "tr_product_pillar_team"
+    cost_analysis_date_filter: "date >= '2025-10-01' AND date <= CURRENT_DATE()"
+    variance_analysis: "actual_cost - fy26_ytd_spend"
+    efficiency_analysis: "actual_cost / fy26_ytd_spend"
+    forecasting: "project FY27 budget based on cost trends and FY26 performance"

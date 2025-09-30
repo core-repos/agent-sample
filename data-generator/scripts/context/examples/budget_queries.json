@@ -1,0 +1,261 @@
+{
+  "metadata": {
+    "table": "budget_analysis",
+    "dataset": "agent_bq_dataset",
+    "description": "SQL query examples for fiscal year budget allocation and variance analysis",
+    "version": "2.0.0",
+    "created_date": "2024-09-29",
+    "query_categories": ["fiscal_year_analysis", "product_budget_tracking", "variance_analysis", "utilization_metrics", "forecasting"]
+  },
+  "query_examples": {
+    "fiscal_year_overview": {
+      "total_fy26_budget_allocation": {
+        "description": "Total FY26 budget allocation across all products and teams",
+        "sql": "SELECT SUM(fy_26_budget) as total_fy26_budget, SUM(fy26_ytd_spend) as total_ytd_spend, SUM(fy26_projected_spend) as total_projected_spend, ROUND((SUM(fy26_ytd_spend) / SUM(fy_26_budget)) * 100, 2) as ytd_utilization_pct, ROUND((SUM(fy26_projected_spend) / SUM(fy_26_budget)) * 100, 2) as projected_utilization_pct FROM `{{ project_id }}.{{ dataset }}.budget_analysis`",
+        "expected_result_type": "scalar_aggregated",
+        "visualization_hint": "kpi_indicator",
+        "parameters": {},
+        "tags": ["overview", "fy26", "totals"]
+      },
+      "budget_by_cto_organization": {
+        "description": "FY26 budget allocation and utilization by CTO organization",
+        "sql": "SELECT cto, SUM(fy_26_budget) as allocated_budget, SUM(fy26_ytd_spend) as ytd_spend, SUM(fy26_projected_spend) as projected_spend, ROUND((SUM(fy26_ytd_spend) / SUM(fy_26_budget)) * 100, 2) as ytd_utilization_pct, ROUND((SUM(fy26_projected_spend) / SUM(fy_26_budget)) * 100, 2) as projected_utilization_pct FROM `{{ project_id }}.{{ dataset }}.budget_analysis` GROUP BY cto ORDER BY allocated_budget DESC",
+        "expected_result_type": "grouped",
+        "visualization_hint": "bar_chart",
+        "parameters": {},
+        "tags": ["cto", "organization", "fy26"]
+      },
+      "budget_by_product_team": {
+        "description": "FY26 budget breakdown by product pillar team",
+        "sql": "SELECT tr_product_pillar_team, COUNT(*) as product_count, SUM(fy_26_budget) as total_budget, SUM(fy26_ytd_spend) as ytd_spend, SUM(fy26_projected_spend) as projected_spend, ROUND(AVG((fy26_ytd_spend / fy_26_budget) * 100), 2) as avg_utilization_pct FROM `{{ project_id }}.{{ dataset }}.budget_analysis` GROUP BY tr_product_pillar_team ORDER BY total_budget DESC",
+        "expected_result_type": "grouped",
+        "visualization_hint": "treemap",
+        "parameters": {},
+        "tags": ["product_team", "breakdown", "fy26"]
+      },
+      "multi_year_budget_comparison": {
+        "description": "Compare budget allocations across fiscal years 24, 25, and 26",
+        "sql": "SELECT cto, SUM(fy_24_budget) as fy24_budget, SUM(fy_25_budget) as fy25_budget, SUM(fy_26_budget) as fy26_budget, ROUND(((SUM(fy_25_budget) - SUM(fy_24_budget)) / SUM(fy_24_budget)) * 100, 2) as fy25_growth_pct, ROUND(((SUM(fy_26_budget) - SUM(fy_25_budget)) / SUM(fy_25_budget)) * 100, 2) as fy26_growth_pct FROM `{{ project_id }}.{{ dataset }}.budget_analysis` GROUP BY cto ORDER BY fy26_budget DESC",
+        "expected_result_type": "time_comparison",
+        "visualization_hint": "line_chart",
+        "parameters": {},
+        "tags": ["multi_year", "growth", "comparison"]
+      }
+    },
+    "budget_utilization_analysis": {
+      "fy26_budget_utilization_by_product": {
+        "description": "FY26 budget utilization analysis by individual products",
+        "sql": "SELECT tr_product_id, tr_product, tr_product_pillar_team, cto, fy_26_budget, fy26_ytd_spend, fy26_projected_spend, ROUND((fy26_ytd_spend / fy_26_budget) * 100, 2) as ytd_utilization_pct, ROUND((fy26_projected_spend / fy_26_budget) * 100, 2) as projected_utilization_pct, (fy26_projected_spend - fy_26_budget) as projected_variance FROM `{{ project_id }}.{{ dataset }}.budget_analysis` WHERE fy_26_budget > 0 ORDER BY projected_utilization_pct DESC",
+        "expected_result_type": "product_analysis",
+        "visualization_hint": "scatter_plot",
+        "parameters": {},
+        "tags": ["product", "utilization", "fy26"]
+      },
+      "high_utilization_products": {
+        "description": "Products with FY26 budget utilization above threshold",
+        "sql": "SELECT tr_product_id, tr_product, tr_product_pillar_team, cto, fy_26_budget, fy26_ytd_spend, fy26_projected_spend, ROUND((fy26_ytd_spend / fy_26_budget) * 100, 2) as ytd_utilization_pct, ROUND((fy26_projected_spend / fy_26_budget) * 100, 2) as projected_utilization_pct FROM `{{ project_id }}.{{ dataset }}.budget_analysis` WHERE (fy26_ytd_spend / fy_26_budget) > {{ utilization_threshold }} OR (fy26_projected_spend / fy_26_budget) > {{ utilization_threshold }} ORDER BY projected_utilization_pct DESC",
+        "expected_result_type": "filtered",
+        "visualization_hint": "table",
+        "parameters": {
+          "utilization_threshold": 0.8
+        },
+        "tags": ["high_utilization", "risk", "fy26"]
+      },
+      "products_over_budget": {
+        "description": "Products projected to exceed FY26 budget allocation",
+        "sql": "SELECT tr_product_id, tr_product, tr_product_pillar_team, cto, fy_26_budget, fy26_projected_spend, (fy26_projected_spend - fy_26_budget) as budget_overage, ROUND(((fy26_projected_spend - fy_26_budget) / fy_26_budget) * 100, 2) as overage_pct, tr_subpillar_name FROM `{{ project_id }}.{{ dataset }}.budget_analysis` WHERE fy26_projected_spend > fy_26_budget ORDER BY overage_pct DESC",
+        "expected_result_type": "overspend_analysis",
+        "visualization_hint": "waterfall_chart",
+        "parameters": {},
+        "tags": ["over_budget", "risk", "variance"]
+      },
+      "budget_efficiency_by_subpillar": {
+        "description": "Budget efficiency analysis by sub-pillar within teams",
+        "sql": "SELECT tr_product_pillar_team, tr_subpillar_name, COUNT(*) as product_count, SUM(fy_26_budget) as total_budget, SUM(fy26_ytd_spend) as total_ytd_spend, ROUND(AVG((fy26_ytd_spend / fy_26_budget) * 100), 2) as avg_utilization_pct, ROUND(SUM(fy26_ytd_spend) / SUM(fy_26_budget) * 100, 2) as overall_utilization_pct FROM `{{ project_id }}.{{ dataset }}.budget_analysis` WHERE fy_26_budget > 0 GROUP BY tr_product_pillar_team, tr_subpillar_name ORDER BY overall_utilization_pct DESC",
+        "expected_result_type": "efficiency_analysis",
+        "visualization_hint": "heatmap",
+        "parameters": {},
+        "tags": ["subpillar", "efficiency", "utilization"]
+      }
+    },
+    "variance_analysis": {
+      "fy26_budget_variance_summary": {
+        "description": "Comprehensive FY26 budget variance analysis",
+        "sql": "SELECT cto, SUM(fy_26_budget) as allocated_budget, SUM(fy26_ytd_spend) as ytd_actual, SUM(fy26_projected_spend) as projected_spend, SUM(fy26_projected_spend - fy_26_budget) as projected_variance, ROUND((SUM(fy26_projected_spend - fy_26_budget) / SUM(fy_26_budget)) * 100, 2) as variance_pct, CASE WHEN SUM(fy26_projected_spend) > SUM(fy_26_budget) THEN 'OVER_BUDGET' ELSE 'WITHIN_BUDGET' END as variance_status FROM `{{ project_id }}.{{ dataset }}.budget_analysis` GROUP BY cto ORDER BY variance_pct DESC",
+        "expected_result_type": "variance_analysis",
+        "visualization_hint": "waterfall_chart",
+        "parameters": {},
+        "tags": ["variance", "fy26", "analysis"]
+      },
+      "ytd_vs_projected_variance": {
+        "description": "Analysis of YTD vs projected spend variance by product team",
+        "sql": "SELECT tr_product_pillar_team, SUM(fy26_ytd_spend) as ytd_spend, SUM(fy26_projected_spend) as projected_spend, SUM(fy26_projected_spend - fy26_ytd_spend) as remaining_projected_spend, ROUND((SUM(fy26_projected_spend - fy26_ytd_spend) / SUM(fy26_ytd_spend)) * 100, 2) as projected_acceleration_pct FROM `{{ project_id }}.{{ dataset }}.budget_analysis` WHERE fy26_ytd_spend > 0 GROUP BY tr_product_pillar_team ORDER BY projected_acceleration_pct DESC",
+        "expected_result_type": "projection_analysis",
+        "visualization_hint": "bar_chart",
+        "parameters": {},
+        "tags": ["ytd", "projection", "variance"]
+      },
+      "budget_growth_vs_spend_analysis": {
+        "description": "Compare budget growth patterns vs spending patterns across fiscal years",
+        "sql": "WITH budget_growth AS (SELECT tr_product_pillar_team, SUM(fy_24_budget) as fy24_budget, SUM(fy_25_budget) as fy25_budget, SUM(fy_26_budget) as fy26_budget, ROUND(((SUM(fy_26_budget) - SUM(fy_24_budget)) / SUM(fy_24_budget)) * 100, 2) as budget_growth_2yr_pct FROM `{{ project_id }}.{{ dataset }}.budget_analysis` GROUP BY tr_product_pillar_team) SELECT bg.tr_product_pillar_team, bg.fy24_budget, bg.fy25_budget, bg.fy26_budget, bg.budget_growth_2yr_pct, SUM(b.fy26_projected_spend) as fy26_projected_spend, ROUND((SUM(b.fy26_projected_spend) / bg.fy26_budget) * 100, 2) as projected_utilization_pct FROM budget_growth bg JOIN `{{ project_id }}.{{ dataset }}.budget_analysis` b ON bg.tr_product_pillar_team = b.tr_product_pillar_team GROUP BY bg.tr_product_pillar_team, bg.fy24_budget, bg.fy25_budget, bg.fy26_budget, bg.budget_growth_2yr_pct ORDER BY budget_growth_2yr_pct DESC",
+        "expected_result_type": "growth_analysis",
+        "visualization_hint": "bubble_chart",
+        "parameters": {},
+        "tags": ["growth", "utilization", "correlation"]
+      }
+    },
+    "forecasting_and_planning": {
+      "fy26_quarterly_burn_rate_forecast": {
+        "description": "Forecast quarterly burn rates for FY26 based on YTD performance",
+        "sql": "SELECT tr_product_pillar_team, SUM(fy_26_budget) as annual_budget, SUM(fy26_ytd_spend) as ytd_spend, SUM(fy26_projected_spend) as projected_annual_spend, ROUND(SUM(fy26_ytd_spend) / 3, 2) as avg_quarterly_ytd_spend, ROUND((SUM(fy26_projected_spend) - SUM(fy26_ytd_spend)) / 1, 2) as projected_q4_spend, ROUND(SUM(fy26_projected_spend) / SUM(fy_26_budget) * 100, 2) as projected_utilization_pct FROM `{{ project_id }}.{{ dataset }}.budget_analysis` GROUP BY tr_product_pillar_team ORDER BY projected_utilization_pct DESC",
+        "expected_result_type": "forecast",
+        "visualization_hint": "line_chart",
+        "parameters": {},
+        "tags": ["forecast", "quarterly", "burn_rate"]
+      },
+      "fy27_budget_recommendations": {
+        "description": "FY27 budget recommendations based on FY26 performance trends",
+        "sql": "SELECT tr_product_pillar_team, cto, SUM(fy_26_budget) as fy26_budget, SUM(fy26_projected_spend) as fy26_projected_spend, ROUND(SUM(fy26_projected_spend) * 1.1, 2) as recommended_fy27_budget_conservative, ROUND(SUM(fy26_projected_spend) * 1.2, 2) as recommended_fy27_budget_growth, (SUM(fy26_projected_spend) - SUM(fy_26_budget)) as fy26_variance, CASE WHEN SUM(fy26_projected_spend) > SUM(fy_26_budget) * 1.1 THEN 'INCREASE_RECOMMENDED' WHEN SUM(fy26_projected_spend) < SUM(fy_26_budget) * 0.9 THEN 'DECREASE_POSSIBLE' ELSE 'MAINTAIN_CURRENT' END as recommendation FROM `{{ project_id }}.{{ dataset }}.budget_analysis` GROUP BY tr_product_pillar_team, cto ORDER BY fy26_projected_spend DESC",
+        "expected_result_type": "planning_recommendation",
+        "visualization_hint": "scatter_plot",
+        "parameters": {},
+        "tags": ["fy27", "planning", "recommendations"]
+      },
+      "seasonal_spending_analysis": {
+        "description": "Analyze spending patterns to identify seasonal trends for planning",
+        "sql": "SELECT cto, ROUND(AVG((fy26_ytd_spend / fy_26_budget) * 100), 2) as avg_ytd_utilization_pct, ROUND(STDDEV((fy26_ytd_spend / fy_26_budget) * 100), 2) as utilization_variance, COUNT(*) as product_count, SUM(CASE WHEN fy26_projected_spend > fy_26_budget THEN 1 ELSE 0 END) as products_over_budget, SUM(CASE WHEN (fy26_ytd_spend / fy_26_budget) > 0.9 THEN 1 ELSE 0 END) as high_utilization_products FROM `{{ project_id }}.{{ dataset }}.budget_analysis` WHERE fy_26_budget > 0 GROUP BY cto ORDER BY avg_ytd_utilization_pct DESC",
+        "expected_result_type": "pattern_analysis",
+        "visualization_hint": "radar_chart",
+        "parameters": {},
+        "tags": ["seasonal", "patterns", "planning"]
+      }
+    },
+    "product_performance_analysis": {
+      "top_budget_products_by_team": {
+        "description": "Top budget allocated products within each team",
+        "sql": "WITH ranked_products AS (SELECT tr_product_id, tr_product, tr_product_pillar_team, tr_subpillar_name, fy_26_budget, fy26_ytd_spend, fy26_projected_spend, ROW_NUMBER() OVER (PARTITION BY tr_product_pillar_team ORDER BY fy_26_budget DESC) as budget_rank FROM `{{ project_id }}.{{ dataset }}.budget_analysis`) SELECT tr_product_pillar_team, tr_product_id, tr_product, tr_subpillar_name, fy_26_budget, fy26_ytd_spend, fy26_projected_spend, ROUND((fy26_ytd_spend / fy_26_budget) * 100, 2) as utilization_pct FROM ranked_products WHERE budget_rank <= {{ top_n }} ORDER BY tr_product_pillar_team, budget_rank",
+        "expected_result_type": "ranked_analysis",
+        "visualization_hint": "table",
+        "parameters": {
+          "top_n": 5
+        },
+        "tags": ["top_products", "ranking", "team"]
+      },
+      "product_budget_efficiency_analysis": {
+        "description": "Product-level budget efficiency metrics with performance indicators",
+        "sql": "SELECT tr_product_id, tr_product, tr_product_pillar_team, cto, fy_26_budget, fy26_ytd_spend, fy26_projected_spend, ROUND((fy26_ytd_spend / fy_26_budget) * 100, 2) as ytd_efficiency_pct, ROUND((fy26_projected_spend / fy_26_budget) * 100, 2) as projected_efficiency_pct, (fy26_projected_spend - fy26_ytd_spend) as remaining_projected_spend, CASE WHEN (fy26_projected_spend / fy_26_budget) > 1.1 THEN 'HIGH_RISK' WHEN (fy26_projected_spend / fy_26_budget) > 0.95 THEN 'MONITOR' WHEN (fy26_projected_spend / fy_26_budget) < 0.8 THEN 'UNDER_UTILIZED' ELSE 'ON_TRACK' END as performance_category FROM `{{ project_id }}.{{ dataset }}.budget_analysis` WHERE fy_26_budget > {{ min_budget_threshold }} ORDER BY projected_efficiency_pct DESC",
+        "expected_result_type": "efficiency_analysis",
+        "visualization_hint": "bubble_chart",
+        "parameters": {
+          "min_budget_threshold": 5000
+        },
+        "tags": ["efficiency", "performance", "product"]
+      },
+      "subpillar_budget_distribution": {
+        "description": "Budget distribution and performance within sub-pillars",
+        "sql": "SELECT tr_product_pillar_team, tr_subpillar_name, COUNT(*) as product_count, SUM(fy_26_budget) as total_budget, AVG(fy_26_budget) as avg_product_budget, SUM(fy26_ytd_spend) as total_ytd_spend, SUM(fy26_projected_spend) as total_projected_spend, ROUND((SUM(fy26_ytd_spend) / SUM(fy_26_budget)) * 100, 2) as subpillar_utilization_pct FROM `{{ project_id }}.{{ dataset }}.budget_analysis` GROUP BY tr_product_pillar_team, tr_subpillar_name ORDER BY total_budget DESC",
+        "expected_result_type": "hierarchical_analysis",
+        "visualization_hint": "treemap",
+        "parameters": {},
+        "tags": ["subpillar", "distribution", "hierarchy"]
+      }
+    },
+    "alert_queries": {
+      "budget_alerts_requiring_attention": {
+        "description": "Budget alerts for products requiring immediate attention",
+        "sql": "SELECT tr_product_id, tr_product, tr_product_pillar_team, cto, fy_26_budget, fy26_ytd_spend, fy26_projected_spend, ROUND((fy26_ytd_spend / fy_26_budget) * 100, 2) as ytd_utilization_pct, ROUND((fy26_projected_spend / fy_26_budget) * 100, 2) as projected_utilization_pct, (fy26_projected_spend - fy_26_budget) as projected_variance, CASE WHEN fy26_projected_spend > fy_26_budget * 1.2 THEN 'CRITICAL_OVERSPEND' WHEN fy26_projected_spend > fy_26_budget * 1.1 THEN 'PROJECTED_OVERSPEND' WHEN (fy26_ytd_spend / fy_26_budget) > 0.9 THEN 'HIGH_UTILIZATION' WHEN (fy26_ytd_spend / fy_26_budget) < 0.3 THEN 'LOW_UTILIZATION' ELSE 'MONITOR' END as alert_level FROM `{{ project_id }}.{{ dataset }}.budget_analysis` WHERE (fy26_projected_spend > fy_26_budget * {{ overspend_threshold }}) OR ((fy26_ytd_spend / fy_26_budget) > {{ high_util_threshold }}) OR ((fy26_ytd_spend / fy_26_budget) < {{ low_util_threshold }}) ORDER BY projected_utilization_pct DESC",
+        "expected_result_type": "alerts",
+        "visualization_hint": "table",
+        "parameters": {
+          "overspend_threshold": 1.1,
+          "high_util_threshold": 0.85,
+          "low_util_threshold": 0.3
+        },
+        "tags": ["alerts", "monitoring", "attention_required"]
+      },
+      "fy26_budget_performance_dashboard": {
+        "description": "Executive dashboard summary for FY26 budget performance",
+        "sql": "WITH summary_stats AS (SELECT COUNT(*) as total_products, SUM(fy_26_budget) as total_budget, SUM(fy26_ytd_spend) as total_ytd_spend, SUM(fy26_projected_spend) as total_projected_spend, COUNT(CASE WHEN fy26_projected_spend > fy_26_budget THEN 1 END) as products_over_budget, COUNT(CASE WHEN (fy26_ytd_spend / fy_26_budget) > 0.9 THEN 1 END) as high_utilization_products FROM `{{ project_id }}.{{ dataset }}.budget_analysis`) SELECT total_products, total_budget, total_ytd_spend, total_projected_spend, products_over_budget, high_utilization_products, ROUND((total_ytd_spend / total_budget) * 100, 2) as overall_ytd_utilization_pct, ROUND((total_projected_spend / total_budget) * 100, 2) as overall_projected_utilization_pct, (total_projected_spend - total_budget) as total_projected_variance, ROUND(((total_projected_spend - total_budget) / total_budget) * 100, 2) as total_variance_pct FROM summary_stats",
+        "expected_result_type": "dashboard_summary",
+        "visualization_hint": "dashboard",
+        "parameters": {},
+        "tags": ["dashboard", "executive", "summary"]
+      }
+    }
+  },
+  "query_templates": {
+    "parameterized_queries": {
+      "product_budget_performance": {
+        "description": "Template for analyzing product budget performance across fiscal years",
+        "sql_template": "SELECT {{ select_fields }} FROM `{{ project_id }}.{{ dataset }}.budget_analysis` WHERE {{ filters }} {{ group_by }} {{ order_by }}",
+        "required_parameters": ["select_fields"],
+        "optional_parameters": {
+          "filters": "fy_26_budget > 0",
+          "group_by": "",
+          "order_by": "ORDER BY fy_26_budget DESC"
+        }
+      },
+      "fiscal_year_comparison": {
+        "description": "Template for comparing budget allocations across fiscal years",
+        "sql_template": "SELECT {{ grouping_field }}, SUM(fy_{{ year1 }}_budget) as fy{{ year1 }}_budget, SUM(fy_{{ year2 }}_budget) as fy{{ year2 }}_budget, ROUND(((SUM(fy_{{ year2 }}_budget) - SUM(fy_{{ year1 }}_budget)) / SUM(fy_{{ year1 }}_budget)) * 100, 2) as growth_pct FROM `{{ project_id }}.{{ dataset }}.budget_analysis` {{ filters }} GROUP BY {{ grouping_field }} ORDER BY fy{{ year2 }}_budget DESC",
+        "required_parameters": ["grouping_field", "year1", "year2"],
+        "optional_parameters": {
+          "filters": ""
+        }
+      }
+    }
+  },
+  "common_patterns": {
+    "utilization_calculations": [
+      "(fy26_ytd_spend / fy_26_budget) * 100 as ytd_utilization_pct",
+      "(fy26_projected_spend / fy_26_budget) * 100 as projected_utilization_pct",
+      "fy_26_budget - fy26_ytd_spend as remaining_budget",
+      "fy26_projected_spend - fy_26_budget as projected_variance"
+    ],
+    "fiscal_year_calculations": [
+      "((fy_25_budget - fy_24_budget) / fy_24_budget) * 100 as fy25_growth_pct",
+      "((fy_26_budget - fy_25_budget) / fy_25_budget) * 100 as fy26_growth_pct",
+      "(fy26_projected_spend - fy26_ytd_spend) as remaining_projected_spend"
+    ],
+    "variance_calculations": [
+      "fy26_projected_spend - fy_26_budget as projected_variance_amount",
+      "((fy26_projected_spend - fy_26_budget) / fy_26_budget) * 100 as projected_variance_pct",
+      "ABS(fy26_projected_spend - fy_26_budget) as absolute_projected_variance"
+    ],
+    "performance_categorization": [
+      "CASE WHEN (fy26_projected_spend / fy_26_budget) > 1.1 THEN 'OVER_BUDGET' WHEN (fy26_projected_spend / fy_26_budget) > 0.95 THEN 'AT_RISK' WHEN (fy26_projected_spend / fy_26_budget) < 0.8 THEN 'UNDER_UTILIZED' ELSE 'ON_TRACK' END as performance_status"
+    ]
+  },
+  "business_rules": {
+    "alert_thresholds": {
+      "high_utilization": 0.85,
+      "critical_utilization": 0.95,
+      "overspend_warning": 1.1,
+      "overspend_critical": 1.2,
+      "under_utilization": 0.5
+    },
+    "fiscal_year_cycles": {
+      "fy26_start": "2025-10-01",
+      "fy26_end": "2026-09-30",
+      "budget_planning_start": "2025-07-01",
+      "quarterly_reviews": ["2025-12-31", "2026-03-31", "2026-06-30", "2026-09-30"]
+    },
+    "sample_data_context": {
+      "example_cto": "Engineering",
+      "example_team": "ENTERPRISE FINANCE TECH",
+      "example_subpillar": "ENTERPRISE FINANCE TECH",
+      "example_product_id": 736,
+      "example_product": "delivery as service",
+      "example_fy_budgets": {
+        "fy_24": 15000,
+        "fy_25": 15000,
+        "fy_26": 15000
+      },
+      "example_fy26_performance": {
+        "ytd_spend": 4500,
+        "projected_spend": 18000,
+        "variance_pct": 20
+      }
+    }
+  }
+}
