@@ -458,35 +458,29 @@ def create_app():
             background: #f8f9fa !important;
             color: #2c3e50 !important;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+            max-width: 100% !important;
+            padding: 20px !important;
         }
 
         /* Main chatbot styling */
         #main-chatbot {
-            height: calc(100vh - 200px) !important;
+            height: calc(100vh - 250px) !important;
+            min-height: 500px !important;
             border: 1px solid #e1e8ed !important;
             border-radius: 8px !important;
             background: white !important;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+            padding: 16px !important;
         }
 
         /* Input box styling - professional and clean */
         #input-footer {
-            margin-top: 12px !important;
+            margin-top: 16px !important;
             padding: 0 !important;
         }
 
         #input-text {
-            margin-bottom: 0px !important;
-        }
-
-        #input-text label {
-            height: 56px !important;
-        }
-
-        #input-text .wrap {
-            height: 56px !important;
-            min-height: 56px !important;
-            max-height: 56px !important;
+            margin-bottom: 12px !important;
         }
 
         #input-text textarea {
@@ -495,23 +489,11 @@ def create_app():
             border-radius: 8px !important;
             color: #2c3e50 !important;
             font-size: 1rem !important;
-            padding: 16px !important;
+            padding: 14px 16px !important;
             transition: border-color 0.2s ease !important;
             line-height: 1.5 !important;
-            height: 56px !important;
-            min-height: 56px !important;
-            max-height: 56px !important;
+            min-height: 48px !important;
             resize: none !important;
-            box-sizing: border-box !important;
-        }
-
-        /* Target Gradio's container elements */
-        #input-text > .block {
-            height: 56px !important;
-        }
-
-        #input-text .scroll-hide {
-            height: 56px !important;
         }
 
         #input-text textarea:focus {
@@ -524,25 +506,35 @@ def create_app():
             color: #94a3b8 !important;
         }
 
-        /* Button styling - black send button */
+        /* Button row layout - Force horizontal layout */
+        #button-row {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 12px !important;
+            margin-top: 0 !important;
+            align-items: center !important;
+        }
+
+        /* Ensure Row container renders as flex */
+        #button-row.row {
+            display: flex !important;
+            flex-direction: row !important;
+        }
+
+        /* Button styling - Send button (primary) */
+        .send-btn,
         .send-btn button {
             background: #1e293b !important;
             color: white !important;
             border: none !important;
             border-radius: 8px !important;
             font-weight: 500 !important;
-            padding: 0 16px !important;
+            padding: 12px 24px !important;
             transition: all 0.2s ease !important;
             font-size: 0.95rem !important;
-            height: 56px !important;
-            min-height: 56px !important;
-            max-height: 56px !important;
-            width: 100% !important;
-            min-width: 80px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin-left: 8px !important;
+            height: 48px !important;
+            min-width: 100px !important;
+            flex: 1 !important;
         }
 
         .send-btn button:hover {
@@ -551,25 +543,20 @@ def create_app():
             box-shadow: 0 4px 12px rgba(30, 41, 59, 0.3) !important;
         }
 
-        /* Clear button styling - black outline */
+        /* Clear button styling (secondary) */
+        .clear-btn,
         .clear-btn button {
             background: white !important;
             color: #1e293b !important;
             border: 2px solid #1e293b !important;
             border-radius: 8px !important;
             font-weight: 500 !important;
-            padding: 0 16px !important;
+            padding: 12px 24px !important;
             transition: all 0.2s ease !important;
             font-size: 0.95rem !important;
-            height: 56px !important;
-            min-height: 56px !important;
-            max-height: 56px !important;
-            width: 100% !important;
-            min-width: 80px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin-left: 8px !important;
+            height: 48px !important;
+            min-width: 100px !important;
+            flex: 1 !important;
         }
 
         .clear-btn button:hover {
@@ -714,72 +701,9 @@ def create_app():
             background: #dc2626 !important;
         }
 
-        /* Input row spacing */
-        #input-footer .row {
-            gap: 8px !important;
-        }
-
-        /* Ensure buttons in row are sized properly */
-        #input-footer .row > * {
-            flex-shrink: 0 !important;
-        }
-
-        /* Override ALL Gradio button styles with maximum specificity */
-        button, .gr-button, button.gr-button {
+        /* General button styling */
+        button {
             border-radius: 8px !important;
-        }
-
-        /* Target primary buttons (Send) - Override Gradio defaults */
-        .send-btn,
-        .send-btn button,
-        .send-btn > *,
-        button.primary,
-        .primary button,
-        [variant="primary"],
-        button[variant="primary"] {
-            background: #1e293b !important;
-            background-color: #1e293b !important;
-            border: none !important;
-            color: white !important;
-            height: 56px !important;
-            width: 100% !important;
-            min-width: 80px !important;
-            margin-left: 8px !important;
-        }
-
-        .send-btn:hover button,
-        .send-btn button:hover,
-        button.primary:hover,
-        [variant="primary"]:hover {
-            background: #334155 !important;
-            background-color: #334155 !important;
-        }
-
-        /* Target secondary buttons (Clear) - Override Gradio defaults */
-        .clear-btn,
-        .clear-btn button,
-        .clear-btn > *,
-        button.secondary,
-        .secondary button,
-        [variant="secondary"],
-        button[variant="secondary"] {
-            background: white !important;
-            background-color: white !important;
-            border: 2px solid #1e293b !important;
-            color: #1e293b !important;
-            height: 56px !important;
-            width: 100% !important;
-            min-width: 80px !important;
-            margin-left: 8px !important;
-        }
-
-        .clear-btn:hover button,
-        .clear-btn button:hover,
-        button.secondary:hover,
-        [variant="secondary"]:hover {
-            background: #f8f9fa !important;
-            background-color: #f8f9fa !important;
-            border-color: #334155 !important;
         }
 
         /* Hide Gradio branding and footer */
@@ -808,29 +732,28 @@ def create_app():
 
 
         with gr.Row():
-            # Left side - Chat interface
-            with gr.Column(scale=3):
+            # Left side - Chat interface (70% width)
+            with gr.Column(scale=7):
                 chatbot = gr.Chatbot(
                     type="messages",
                     show_label=False,
                     elem_id="main-chatbot"
                 )
 
-                # Input area
+                # Input area with horizontal button layout
                 with gr.Column(elem_id="input-footer"):
-                    with gr.Row():
-                        msg_input = gr.Textbox(
-                            show_label=False,
-                            placeholder="Ask a question about your data...",
-                            lines=1,
-                            elem_id="input-text",
-                            scale=8
-                        )
+                    msg_input = gr.Textbox(
+                        show_label=False,
+                        placeholder="Ask a question about your data...",
+                        lines=1,
+                        elem_id="input-text"
+                    )
+                    with gr.Row(elem_id="button-row"):
                         send_btn = gr.Button("Send", variant="primary", elem_classes="send-btn", scale=1)
                         clear_btn = gr.Button("Clear", variant="secondary", elem_classes="clear-btn", scale=1)
 
-            # Right sidebar
-            with gr.Column(scale=1, elem_id="sidebar-container"):
+            # Right sidebar (30% width)
+            with gr.Column(scale=3, elem_id="sidebar-container"):
                 # Visualization section
                 with gr.Column(elem_classes="sidebar-heading"):
                     gr.Markdown("### 📊 Visualization")
